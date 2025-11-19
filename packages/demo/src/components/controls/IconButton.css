@@ -1,0 +1,53 @@
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.icon-button:hover {
+  background: #252525;
+  border-color: #555;
+  color: #fff;
+}
+
+.icon-button:active {
+  transform: scale(0.95);
+}
+
+.icon-button-active {
+  background: #2a2a2a;
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.icon-button-active:hover {
+  background: rgba(76, 175, 80, 0.1);
+  border-color: #4CAF50;
+}
+
+.icon-button-danger.icon-button-active {
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.icon-button-danger.icon-button-active:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.icon-button-success.icon-button-active {
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.icon-button-success.icon-button-active:hover {
+  background: rgba(76, 175, 80, 0.1);
+}

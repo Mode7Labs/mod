@@ -1,0 +1,142 @@
+.module-wrapper {
+  position: absolute;
+  background: #2a2a2a;
+  border: 2px solid;
+  border-radius: 8px;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: move;
+  user-select: none;
+  z-index: 10;
+}
+
+.module-wrapper.dragging {
+  opacity: 0.8;
+  z-index: 1000;
+}
+
+.module-wrapper-header {
+  padding: 8px 12px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  font-weight: 600;
+}
+
+.module-wrapper-title {
+  font-size: 14px;
+}
+
+.module-wrapper-delete {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.module-wrapper-delete:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.module-wrapper-body {
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  min-height: 80px;
+}
+
+.ports-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: space-evenly;
+}
+
+.ports-left {
+  margin-left: -20px;
+}
+
+.ports-right {
+  margin-right: -20px;
+}
+
+.port {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: crosshair;
+  position: relative;
+}
+
+.port-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  border: 2px solid #666;
+}
+
+/* Connected ports - filled green */
+.port-connected .port-dot {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+}
+
+/* Hovered port during drag - pulsing effect */
+.port-hovered .port-dot {
+  background: #81C784;
+  border-color: #81C784;
+  box-shadow: 0 0 12px rgba(129, 199, 132, 0.8);
+  transform: scale(1.2);
+}
+
+/* Normal hover when not dragging */
+.port:hover .port-dot {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  box-shadow: 0 0 8px #4CAF50;
+  transform: scale(1.1);
+}
+
+.port-label {
+  font-size: 11px;
+  color: #ccc;
+  white-space: nowrap;
+}
+
+.port-input {
+  flex-direction: row;
+}
+
+.port-output {
+  flex-direction: row-reverse;
+}
+
+.module-wrapper-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 120px;
+}
+
+/* Add padding when ports are missing for visual balance */
+.module-wrapper-body:has(.ports-left):not(:has(.ports-right)) .module-wrapper-content {
+  padding-right: 20px;
+}
+
+.module-wrapper-body:has(.ports-right):not(:has(.ports-left)) .module-wrapper-content {
+  padding-left: 20px;
+}

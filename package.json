@@ -1,0 +1,21 @@
+{
+  "name": "@mode-7/mod",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=packages/demo",
+    "build": "npm run build --workspace=packages/core",
+    "build:all": "npm run build --workspaces",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "publish": "npm run build --workspace=packages/core && npm publish --workspace=packages/core"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitepress": "^1.6.4"
+  }
+}

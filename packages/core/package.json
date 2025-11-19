@@ -1,0 +1,64 @@
+{
+  "name": "@mode-7/mod",
+  "version": "0.1.0",
+  "description": "mod - Modular Web Audio components for React",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "web-audio",
+    "react",
+    "audio",
+    "modular",
+    "synthesizer",
+    "daw",
+    "music",
+    "sound",
+    "effects",
+    "modulation",
+    "synth"
+  ],
+  "author": "mode-7",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mode-7/mod.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/mode-7/mod/issues"
+  },
+  "homepage": "https://mode-7.github.io/mod",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  }
+}

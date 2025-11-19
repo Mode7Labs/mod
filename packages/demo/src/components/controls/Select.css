@@ -1,0 +1,78 @@
+.select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  min-width: 100px;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.select-trigger:hover {
+  background: #252525;
+  border-color: #555;
+}
+
+.select-trigger:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.select-icon {
+  display: flex;
+  align-items: center;
+  color: #999;
+}
+
+.select-content {
+  overflow: hidden;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+}
+
+.select-viewport {
+  padding: 4px;
+}
+
+.select-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  padding-left: 28px;
+  font-size: 12px;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 3px;
+  position: relative;
+  outline: none;
+  user-select: none;
+}
+
+.select-item:hover,
+.select-item[data-highlighted] {
+  background: #2a2a2a;
+}
+
+.select-item[data-state="checked"] {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+}
+
+.select-item-indicator {
+  position: absolute;
+  left: 6px;
+  display: flex;
+  align-items: center;
+  color: #4CAF50;
+}
