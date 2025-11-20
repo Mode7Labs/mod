@@ -204,6 +204,139 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the Delay from external state using controlled props:
+
+```tsx
+import { ToneGenerator, Delay, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const toneOut = useRef(null);
+  const delayOut = useRef(null);
+  const [time, setTime] = useState(0.5);
+  const [feedback, setFeedback] = useState(0.4);
+  const [wet, setWet] = useState(0.3);
+
+  return (
+    <>
+      <ToneGenerator output={toneOut} />
+      <Delay
+        input={toneOut}
+        output={delayOut}
+        time={time}
+        onTimeChange={setTime}
+        feedback={feedback}
+        onFeedbackChange={setFeedback}
+        wet={wet}
+        onWetChange={setWet}
+      />
+
+      <div>
+        <label>Delay Time: {time.toFixed(3)}s</label>
+        <input
+          type="range"
+          min="0"
+          max="2"
+          step="0.001"
+          value={time}
+          onChange={(e) => setTime(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Feedback: {(feedback * 100).toFixed(0)}%</label>
+        <input
+          type="range"
+          min="0"
+          max="0.95"
+          step="0.01"
+          value={feedback}
+          onChange={(e) => setFeedback(Number(e.target.value))}
+        />
+      </div>
+
+      <Monitor input={delayOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { ToneGenerator, Delay, DelayHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const delayRef = useRef<DelayHandle>(null);
+  const toneOut = useRef(null);
+  const delayOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (delayRef.current) {
+      delayRef.current.setTime(0.5);
+      delayRef.current.setFeedback(0.4);
+      delayRef.current.setWet(0.3);
+
+      // Get current state
+      const state = delayRef.current.getState();
+      console.log(state.time, state.feedback, state.wet);
+    }
+  }, []);
+
+  const tempoSyncDelay = (bpm: number, division: number = 0.5) => {
+    if (!delayRef.current) return;
+
+    const delayTime = (60 / bpm) * division;
+    delayRef.current.setTime(delayTime);
+  };
+
+  const dubDelay = () => {
+    if (!delayRef.current) return;
+
+    // Classic dub delay settings
+    delayRef.current.setTime(0.375);  // Dotted eighth at 120 BPM
+    delayRef.current.setFeedback(0.7);
+    delayRef.current.setWet(0.5);
+  };
+
+  const modulate DelayTime = () => {
+    if (!delayRef.current) return;
+
+    let time = 0.1;
+    let direction = 1;
+
+    const interval = setInterval(() => {
+      if (delayRef.current) {
+        time += direction * 0.05;
+        if (time >= 1.0) direction = -1;
+        if (time <= 0.1) direction = 1;
+        delayRef.current.setTime(time);
+      }
+    }, 100);
+
+    // Stop after 10 seconds
+    setTimeout(() => clearInterval(interval), 10000);
+  };
+
+  return (
+    <>
+      <ToneGenerator output={toneOut} />
+      <Delay ref={delayRef} input={toneOut} output={delayOut} />
+      <button onClick={() => tempoSyncDelay(120, 0.5)}>Sync to 120 BPM (8th note)</button>
+      <button onClick={dubDelay}>Dub Delay</button>
+      <button onClick={modulateDelayTime}>Modulate Delay Time</button>
+      <Monitor input={delayOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Delay Time

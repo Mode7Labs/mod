@@ -226,6 +226,139 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the Filter from external state using controlled props:
+
+```tsx
+import { ToneGenerator, Filter, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const toneOut = useRef(null);
+  const filterOut = useRef(null);
+  const [frequency, setFrequency] = useState(1000);
+  const [Q, setQ] = useState(1.0);
+  const [type, setType] = useState<BiquadFilterType>('lowpass');
+
+  return (
+    <>
+      <ToneGenerator output={toneOut} waveform="sawtooth" />
+      <Filter
+        input={toneOut}
+        output={filterOut}
+        frequency={frequency}
+        onFrequencyChange={setFrequency}
+        Q={Q}
+        onQChange={setQ}
+        type={type}
+        onTypeChange={setType}
+      />
+
+      <div>
+        <label>Cutoff: {frequency}Hz</label>
+        <input
+          type="range"
+          min="20"
+          max="20000"
+          value={frequency}
+          onChange={(e) => setFrequency(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Resonance: {Q.toFixed(2)}</label>
+        <input
+          type="range"
+          min="0.1"
+          max="20"
+          step="0.1"
+          value={Q}
+          onChange={(e) => setQ(Number(e.target.value))}
+        />
+      </div>
+
+      <Monitor input={filterOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { ToneGenerator, Filter, FilterHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const filterRef = useRef<FilterHandle>(null);
+  const toneOut = useRef(null);
+  const filterOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (filterRef.current) {
+      filterRef.current.setFrequency(1000);
+      filterRef.current.setQ(5.0);
+      filterRef.current.setType('lowpass');
+
+      // Get current state
+      const state = filterRef.current.getState();
+      console.log(state.frequency, state.Q, state.type);
+    }
+  }, []);
+
+  const filterSweep = () => {
+    if (!filterRef.current) return;
+
+    let freq = 200;
+    const interval = setInterval(() => {
+      if (freq < 5000 && filterRef.current) {
+        freq += 100;
+        filterRef.current.setFrequency(freq);
+      } else {
+        clearInterval(interval);
+      }
+    }, 50);
+  };
+
+  const wobbleBass = () => {
+    if (!filterRef.current) return;
+
+    filterRef.current.setType('lowpass');
+    filterRef.current.setQ(10);
+
+    // Create wobble effect with frequency changes
+    let direction = 1;
+    let freq = 200;
+
+    const interval = setInterval(() => {
+      if (filterRef.current) {
+        freq += direction * 50;
+        if (freq >= 1000) direction = -1;
+        if (freq <= 200) direction = 1;
+        filterRef.current.setFrequency(freq);
+      }
+    }, 100);
+
+    // Stop after 5 seconds
+    setTimeout(() => clearInterval(interval), 5000);
+  };
+
+  return (
+    <>
+      <ToneGenerator output={toneOut} frequency={55} waveform="sawtooth" />
+      <Filter ref={filterRef} input={toneOut} output={filterOut} />
+      <button onClick={filterSweep}>Filter Sweep</button>
+      <button onClick={wobbleBass}>Wobble Bass</button>
+      <Monitor input={filterOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Frequency Range

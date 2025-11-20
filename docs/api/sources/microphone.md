@@ -130,6 +130,136 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the Microphone from external state using controlled props:
+
+```tsx
+import { Microphone, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const micOut = useRef(null);
+  const [gain, setGain] = useState(1.0);
+  const [isMuted, setMuted] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+
+  return (
+    <>
+      <Microphone
+        output={micOut}
+        gain={gain}
+        onGainChange={setGain}
+        isMuted={isMuted}
+        onMutedChange={setMuted}
+        selectedDeviceId={selectedDeviceId}
+        onSelectedDeviceIdChange={setSelectedDeviceId}
+      >
+        {({ devices }) => (
+          <div>
+            <label>Input Device:</label>
+            <select
+              value={selectedDeviceId || ''}
+              onChange={(e) => setSelectedDeviceId(e.target.value)}
+            >
+              {devices.map(device => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </Microphone>
+
+      <div>
+        <label>Gain: {gain.toFixed(2)}</label>
+        <input
+          type="range"
+          min="0"
+          max="2"
+          step="0.01"
+          value={gain}
+          onChange={(e) => setGain(Number(e.target.value))}
+        />
+      </div>
+
+      <button onClick={() => setMuted(!isMuted)}>
+        {isMuted ? 'Unmute' : 'Mute'}
+      </button>
+
+      <Monitor input={micOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { Microphone, MicrophoneHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const micRef = useRef<MicrophoneHandle>(null);
+  const micOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (micRef.current) {
+      micRef.current.setGain(1.0);
+      micRef.current.setMuted(false);
+
+      // Get current state
+      const state = micRef.current.getState();
+      console.log(state.gain, state.isMuted, state.selectedDeviceId);
+    }
+  }, []);
+
+  const toggleMicrophoneWithFade = () => {
+    if (!micRef.current) return;
+
+    const state = micRef.current.getState();
+
+    if (!state.isMuted) {
+      // Fade out before muting
+      let gain = state.gain;
+      const interval = setInterval(() => {
+        if (gain > 0 && micRef.current) {
+          gain -= 0.1;
+          micRef.current.setGain(Math.max(0, gain));
+        } else {
+          clearInterval(interval);
+          micRef.current?.setMuted(true);
+        }
+      }, 50);
+    } else {
+      // Unmute and fade in
+      micRef.current.setMuted(false);
+      let gain = 0;
+      const interval = setInterval(() => {
+        if (gain < 1.0 && micRef.current) {
+          gain += 0.1;
+          micRef.current.setGain(Math.min(1.0, gain));
+        } else {
+          clearInterval(interval);
+        }
+      }, 50);
+    }
+  };
+
+  return (
+    <>
+      <Microphone ref={micRef} output={micOut} />
+      <button onClick={toggleMicrophoneWithFade}>Toggle Microphone (with fade)</button>
+      <Monitor input={micOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Browser Permissions

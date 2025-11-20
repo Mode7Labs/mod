@@ -28,7 +28,7 @@
 
 - 🎛️ **Modular Design** - Composable audio components that can be connected in any configuration
 - ⚡ **Type-Safe** - Full TypeScript support with comprehensive type definitions
-- 🎨 **Headless Components** - Render props pattern for complete UI control
+- 🎨 **Flexible API** - Three usage patterns: render props, controlled props, or imperative refs
 - 🔌 **Extensive Module Library** - Sources, processors, CV generators, mixers, and more
 - 📊 **Real-time Control** - React-driven parameter control with smooth automation
 - 🎵 **Professional Audio** - Built on the Web Audio API for high-quality sound
@@ -41,13 +41,16 @@ npm install @mode-7/mod
 
 ## Quick Start
 
+mod components support three different usage patterns:
+
+### 1. Render Props Pattern (UI-focused)
+
 ```tsx
-import { AudioProvider, ToneGenerator, Filter, Monitor } from '@mode-7/mod';
+import { AudioProvider, ToneGenerator, Monitor } from '@mode-7/mod';
 import { useRef } from 'react';
 
 function SimpleSynth() {
   const toneOut = useRef(null);
-  const filterOut = useRef(null);
 
   return (
     <AudioProvider>
@@ -73,19 +76,7 @@ function SimpleSynth() {
         )}
       </ToneGenerator>
 
-      <Filter input={toneOut} output={filterOut}>
-        {({ frequency, setFrequency }) => (
-          <input
-            type="range"
-            min="20"
-            max="20000"
-            value={frequency}
-            onChange={(e) => setFrequency(Number(e.target.value))}
-          />
-        )}
-      </Filter>
-
-      <Monitor input={filterOut}>
+      <Monitor input={toneOut}>
         {({ gain, setGain, isMuted, setMuted }) => (
           <div>
             <input
@@ -102,6 +93,82 @@ function SimpleSynth() {
           </div>
         )}
       </Monitor>
+    </AudioProvider>
+  );
+}
+```
+
+### 2. Controlled Props Pattern (React-like state control)
+
+```tsx
+import { AudioProvider, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function SimpleSynth() {
+  const toneOut = useRef(null);
+  const [frequency, setFrequency] = useState(440);
+  const [gain, setGain] = useState(0.5);
+
+  return (
+    <AudioProvider>
+      <ToneGenerator
+        output={toneOut}
+        frequency={frequency}
+        onFrequencyChange={setFrequency}
+        gain={gain}
+        onGainChange={setGain}
+      />
+
+      <input
+        type="range"
+        min="20"
+        max="2000"
+        value={frequency}
+        onChange={(e) => setFrequency(Number(e.target.value))}
+      />
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={gain}
+        onChange={(e) => setGain(Number(e.target.value))}
+      />
+
+      <Monitor input={toneOut} />
+    </AudioProvider>
+  );
+}
+```
+
+### 3. Imperative Refs Pattern (Programmatic control)
+
+```tsx
+import { AudioProvider, ToneGenerator, Monitor, ToneGeneratorHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function SimpleSynth() {
+  const toneOut = useRef(null);
+  const toneRef = useRef<ToneGeneratorHandle>(null);
+
+  useEffect(() => {
+    // Programmatically control the tone generator
+    const interval = setInterval(() => {
+      if (toneRef.current) {
+        const state = toneRef.current.getState();
+        // Sweep frequency
+        const newFreq = state.frequency * 1.05;
+        toneRef.current.setFrequency(newFreq > 2000 ? 220 : newFreq);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <AudioProvider>
+      <ToneGenerator ref={toneRef} output={toneOut} />
+      <Monitor input={toneOut} />
     </AudioProvider>
   );
 }
@@ -154,7 +221,20 @@ mod follows a modular architecture inspired by hardware synthesizers:
 1. **Wrap your app in `<AudioProvider>`** - Initializes the Web Audio context
 2. **Create modules** - Each module is a React component representing an audio node
 3. **Connect modules** - Pass refs between modules to create audio chains
-4. **Render controls** - Use render props to build custom UIs for each module
+4. **Control modules** - Choose from three patterns:
+   - **Render props** - Build custom UIs with complete control
+   - **Controlled props** - Manage state externally with React patterns
+   - **Imperative refs** - Direct programmatic control via ref methods
+
+## Usage Patterns
+
+### When to Use Each Pattern
+
+- **Render Props**: Best for building interactive UIs where each module needs custom controls
+- **Controlled Props**: Ideal when you need external state management or want to control multiple modules from parent state
+- **Imperative Refs**: Perfect for automation, sequencing, or when you need direct programmatic control without React state
+
+All three patterns can be mixed and matched in the same application.
 
 ## CV Modulation
 

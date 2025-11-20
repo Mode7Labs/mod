@@ -1,12 +1,15 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: 'mod',
+  title: 'MOD',
   description: 'Modular Web Audio components for React',
   base: '/mod/',
 
   head: [
-    ['link', { rel: 'icon', href: '/mod/logo.png' }]
+    ['link', { rel: 'icon', href: '/mod/logo.png' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    ['link', { href: 'https://fonts.googleapis.com/css2?family=Audiowide&display=swap', rel: 'stylesheet' }]
   ],
 
   themeConfig: {
@@ -112,7 +115,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/mode-7/mod' }
+      { icon: 'github', link: 'https://github.com/Mode7Labs/mod' }
     ],
 
     footer: {

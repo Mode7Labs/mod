@@ -1,4 +1,4 @@
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 
@@ -30,15 +30,20 @@ export const Reverb: React.FC<ReverbProps> = ({
   const [duration, setDuration] = useState(2.0);
   const [decay, setDecay] = useState(2.0);
 
-  // Only recreate when specific input stream changes, not refs
+  // Track input changes
   const inputKey = input.current?.audioNode ? String(input.current.audioNode) : 'null';
+
+  const convolverRef = useRef<ConvolverNode | null>(null);
+  const wetGainRef = useRef<GainNode | null>(null);
+  const dryGainRef = useRef<GainNode | null>(null);
 
   // Create nodes once
   useEffect(() => {
-    if (!audioContext || !input.current) return;
+    if (!audioContext) return;
 
     // Create convolver for reverb
     const convolver = audioContext.createConvolver();
+    convolverRef.current = convolver;
 
     // Generate impulse response
     const rate = audioContext.sampleRate;
@@ -57,17 +62,15 @@ export const Reverb: React.FC<ReverbProps> = ({
     // Create wet/dry mix
     const wetGain = audioContext.createGain();
     wetGain.gain.value = wet;
+    wetGainRef.current = wetGain;
 
     const dryGain = audioContext.createGain();
     dryGain.gain.value = 1 - wet;
+    dryGainRef.current = dryGain;
 
     // Create output gain
     const outputGain = audioContext.createGain();
     outputGain.gain.value = 1.0;
-
-    // Connect input to both dry and convolver
-    input.current.gain.connect(dryGain);
-    input.current.gain.connect(convolver);
 
     // Connect convolver to wet gain
     convolver.connect(wetGain);
@@ -99,8 +102,35 @@ export const Reverb: React.FC<ReverbProps> = ({
       dryGain.disconnect();
       outputGain.disconnect();
       output.current = null;
+      convolverRef.current = null;
+      wetGainRef.current = null;
+      dryGainRef.current = null;
     };
-  }, [audioContext, label, inputKey]);
+  }, [audioContext, label]);
+
+  // Handle input connection
+  useEffect(() => {
+    if (!input.current || !convolverRef.current || !dryGainRef.current) return;
+
+    const currentInput = input.current;
+    const convolver = convolverRef.current;
+    const dryGain = dryGainRef.current;
+
+    // Connect input to both dry and convolver
+    currentInput.gain.connect(dryGain);
+    currentInput.gain.connect(convolver);
+
+    return () => {
+      if (currentInput && dryGain && convolver) {
+        try {
+          currentInput.gain.disconnect(dryGain);
+          currentInput.gain.disconnect(convolver);
+        } catch (e) {
+          // Already disconnected
+        }
+      }
+    };
+  }, [inputKey]);
 
   // Update wet/dry mix when it changes
   useEffect(() => {

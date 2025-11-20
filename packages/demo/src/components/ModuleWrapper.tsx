@@ -44,7 +44,7 @@ const isLightColor = (color?: string): boolean => {
   return luminance > 0.5;
 };
 
-export const ModuleWrapper: React.FC<ModuleWrapperProps> = ({
+export const ModuleWrapper = React.memo<ModuleWrapperProps>(({
   id,
   type,
   position,
@@ -197,4 +197,4 @@ export const ModuleWrapper: React.FC<ModuleWrapperProps> = ({
       </div>
     </div>
   );
-};
+});

@@ -264,6 +264,104 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage compressor state externally using controlled props:
+
+```tsx
+import { Compressor } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const compOut = useRef(null);
+
+  const [threshold, setThreshold] = useState(-24);
+  const [ratio, setRatio] = useState(4);
+  const [attack, setAttack] = useState(0.003);
+  const [release, setRelease] = useState(0.25);
+
+  return (
+    <>
+      <Compressor
+        input={inputRef}
+        output={compOut}
+        threshold={threshold}
+        onThresholdChange={setThreshold}
+        ratio={ratio}
+        onRatioChange={setRatio}
+        attack={attack}
+        onAttackChange={setAttack}
+        release={release}
+        onReleaseChange={setRelease}
+      />
+
+      <div>
+        <label>Threshold: {threshold.toFixed(1)} dB</label>
+        <input
+          type="range"
+          min="-60"
+          max="0"
+          step="0.1"
+          value={threshold}
+          onChange={(e) => setThreshold(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Ratio: {ratio.toFixed(1)}:1</label>
+        <input
+          type="range"
+          min="1"
+          max="20"
+          step="0.1"
+          value={ratio}
+          onChange={(e) => setRatio(Number(e.target.value))}
+        />
+      </div>
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control the compressor programmatically using refs:
+
+```tsx
+import { Compressor, CompressorHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const compOut = useRef(null);
+  const compRef = useRef<CompressorHandle>(null);
+
+  useEffect(() => {
+    if (compRef.current) {
+      // Apply vocal compression preset
+      compRef.current.setThreshold(-18);
+      compRef.current.setRatio(4);
+      compRef.current.setKnee(10);
+      compRef.current.setAttack(0.005);
+      compRef.current.setRelease(0.05);
+
+      // Get current state
+      const state = compRef.current.getState();
+      console.log('Compressor settings:', state);
+    }
+  }, []);
+
+  return (
+    <Compressor
+      ref={compRef}
+      input={inputRef}
+      output={compOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Threshold

@@ -158,6 +158,158 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the StreamingAudioDeck from external state using controlled props:
+
+```tsx
+import { StreamingAudioDeck, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const streamOut = useRef(null);
+  const [url, setUrl] = useState('');
+  const [gain, setGain] = useState(1.0);
+  const [isPlaying, setPlaying] = useState(false);
+
+  const stations = [
+    { name: 'Jazz FM', url: 'https://example.com/jazz' },
+    { name: 'Rock Radio', url: 'https://example.com/rock' },
+  ];
+
+  return (
+    <>
+      <StreamingAudioDeck
+        output={streamOut}
+        url={url}
+        onUrlChange={setUrl}
+        gain={gain}
+        onGainChange={setGain}
+        isPlaying={isPlaying}
+        onPlayingChange={setPlaying}
+      />
+
+      <div>
+        <h3>Select Station:</h3>
+        {stations.map(station => (
+          <button
+            key={station.name}
+            onClick={() => {
+              setUrl(station.url);
+              setPlaying(true);
+            }}
+          >
+            {station.name}
+          </button>
+        ))}
+      </div>
+
+      <div>
+        <label>Volume: {gain.toFixed(2)}</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={gain}
+          onChange={(e) => setGain(Number(e.target.value))}
+        />
+      </div>
+
+      <button onClick={() => setPlaying(!isPlaying)}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+
+      <Monitor input={streamOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { StreamingAudioDeck, StreamingAudioDeckHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const streamRef = useRef<StreamingAudioDeckHandle>(null);
+  const streamOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (streamRef.current) {
+      streamRef.current.setUrl('https://example.com/stream');
+      streamRef.current.setGain(0.8);
+
+      // Get current state
+      const state = streamRef.current.getState();
+      console.log(state.url, state.isPlaying, state.gain);
+    }
+  }, []);
+
+  const stations = [
+    { name: 'Jazz FM', url: 'https://example.com/jazz' },
+    { name: 'Rock Radio', url: 'https://example.com/rock' },
+    { name: 'Classical', url: 'https://example.com/classical' },
+  ];
+
+  const switchStation = (stationUrl: string) => {
+    if (!streamRef.current) return;
+
+    // Fade out current station
+    const currentGain = streamRef.current.getState().gain;
+    let gain = currentGain;
+
+    const fadeOut = setInterval(() => {
+      if (gain > 0 && streamRef.current) {
+        gain -= 0.1;
+        streamRef.current.setGain(Math.max(0, gain));
+      } else {
+        clearInterval(fadeOut);
+
+        // Switch station
+        streamRef.current?.pause();
+        streamRef.current?.setUrl(stationUrl);
+        streamRef.current?.play();
+
+        // Fade in new station
+        gain = 0;
+        const fadeIn = setInterval(() => {
+          if (gain < currentGain && streamRef.current) {
+            gain += 0.1;
+            streamRef.current.setGain(Math.min(currentGain, gain));
+          } else {
+            clearInterval(fadeIn);
+          }
+        }, 50);
+      }
+    }, 50);
+  };
+
+  return (
+    <>
+      <StreamingAudioDeck ref={streamRef} output={streamOut} />
+
+      <div>
+        {stations.map(station => (
+          <button
+            key={station.name}
+            onClick={() => switchStation(station.url)}
+          >
+            {station.name}
+          </button>
+        ))}
+      </div>
+
+      <Monitor input={streamOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Streaming vs File Playback

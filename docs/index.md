@@ -2,19 +2,19 @@
 layout: home
 
 hero:
-  name: mod
+  name: MOD
   text: Modular Web Audio
   tagline: Build powerful audio applications with composable React components
   image:
     src: /logo.png
-    alt: mod logo
+    alt: MOD logo
   actions:
     - theme: brand
       text: Get Started
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/mode-7/mod
+      link: https://github.com/Mode7Labs/mod
     - theme: alt
       text: Try Playground
       link: /playground/
@@ -48,8 +48,8 @@ features:
 ## Quick Example
 
 ```tsx
-import { AudioProvider, ToneGenerator, Filter, Monitor } from '@mode-7/mod';
-import { useRef } from 'react';
+import { AudioProvider, ToneGenerator, Filter, Monitor } from "@mode-7/mod";
+import { useRef } from "react";
 
 function SimpleSynth() {
   const toneOut = useRef(null);
@@ -93,9 +93,9 @@ function SimpleSynth() {
 npm install @mode-7/mod
 ```
 
-## Why mod?
+## Why MOD?
 
-**mod** brings the power and flexibility of modular synthesis to web development. Instead of wrestling with the Web Audio API's low-level nodes, you can compose audio processing chains using familiar React patterns.
+**MOD** brings the power and flexibility of modular synthesis to web development. Instead of wrestling with the Web Audio API's low-level nodes, you can compose audio processing chains using familiar React patterns.
 
 - ✅ **Declarative** - Describe what you want, not how to build it
 - ✅ **Composable** - Mix and match modules like Lego blocks

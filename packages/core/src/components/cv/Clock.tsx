@@ -1,6 +1,17 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
+
+export interface ClockHandle {
+  start: () => void;
+  stop: () => void;
+  reset: () => void;
+  getState: () => {
+    bpm: number;
+    isRunning: boolean;
+  };
+}
 
 export interface ClockRenderProps {
   bpm: number;
@@ -14,18 +25,25 @@ export interface ClockRenderProps {
 export interface ClockProps {
   output: ModStreamRef;
   label?: string;
+  // Controlled props
   bpm?: number;
+  onBpmChange?: (bpm: number) => void;
+  // Event callbacks
+  onRunningChange?: (isRunning: boolean) => void;
+  // Render props
   children?: (props: ClockRenderProps) => ReactNode;
 }
 
-export const Clock: React.FC<ClockProps> = ({
+export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
   output,
   label = 'clock',
-  bpm: initialBpm = 120,
+  bpm: controlledBpm,
+  onBpmChange,
+  onRunningChange,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [bpm, setBpm] = useState(initialBpm);
+  const [bpm, setBpm] = useControlledState(controlledBpm, 120, onBpmChange);
   const [isRunning, setIsRunning] = useState(false);
 
   const constantSourceRef = useRef<ConstantSourceNode | null>(null);
@@ -39,23 +57,17 @@ export const Clock: React.FC<ClockProps> = ({
   useEffect(() => {
     if (!audioContext) return;
 
-    // Use ConstantSourceNode to output clock pulses as CV
     const constantSource = audioContext.createConstantSource();
-    constantSource.offset.value = 0; // Start at 0 (low)
+    constantSource.offset.value = 0;
     constantSourceRef.current = constantSource;
 
-    // Create gain node for output
     const gainNode = audioContext.createGain();
     gainNode.gain.value = 1.0;
     gainNodeRef.current = gainNode;
 
-    // Connect constant source to gain
     constantSource.connect(gainNode);
-
-    // Start constant source
     constantSource.start(0);
 
-    // Set output ref
     output.current = {
       audioNode: constantSource,
       gain: gainNode,
@@ -66,7 +78,6 @@ export const Clock: React.FC<ClockProps> = ({
       },
     };
 
-    // Cleanup
     return () => {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
@@ -80,26 +91,21 @@ export const Clock: React.FC<ClockProps> = ({
     };
   }, [audioContext, label]);
 
-  // Start the clock
   const start = () => {
     if (isRunning || !audioContext || !constantSourceRef.current) return;
     setIsRunning(true);
 
-    const pulseInterval = (60 / bpmRef.current) * 1000; // milliseconds per beat
+    const pulseInterval = (60 / bpmRef.current) * 1000;
 
     intervalRef.current = window.setInterval(() => {
       if (!constantSourceRef.current || !audioContext) return;
 
       const now = audioContext.currentTime;
-
-      // Generate a pulse: 0 -> 1 -> 0
-      // Pulse duration is 10ms
       constantSourceRef.current.offset.setValueAtTime(1, now);
       constantSourceRef.current.offset.setValueAtTime(0, now + 0.01);
     }, pulseInterval);
   };
 
-  // Stop the clock
   const stop = () => {
     if (!isRunning) return;
     setIsRunning(false);
@@ -109,42 +115,45 @@ export const Clock: React.FC<ClockProps> = ({
       intervalRef.current = null;
     }
 
-    // Set to 0
     if (constantSourceRef.current && audioContext) {
       constantSourceRef.current.offset.setValueAtTime(0, audioContext.currentTime);
     }
   };
 
-  // Reset the clock (stop and reset position)
   const reset = () => {
     stop();
   };
 
-  // Update interval when BPM changes while running
   useEffect(() => {
     if (isRunning && audioContext) {
-      // Clear existing interval
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
 
-      // Restart with new BPM
       const pulseInterval = (60 / bpmRef.current) * 1000;
 
       intervalRef.current = window.setInterval(() => {
         if (!constantSourceRef.current || !audioContext) return;
 
         const now = audioContext.currentTime;
-
-        // Generate a pulse
         constantSourceRef.current.offset.setValueAtTime(1, now);
         constantSourceRef.current.offset.setValueAtTime(0, now + 0.01);
       }, pulseInterval);
     }
   }, [bpm]);
 
-  // Render children with state
+  useImperativeHandle(ref, () => ({
+    start,
+    stop,
+    reset,
+    getState: () => ({ bpm, isRunning }),
+  }), [bpm, isRunning]);
+
+  useEffect(() => {
+    onRunningChange?.(isRunning);
+  }, [isRunning, onRunningChange]);
+
   if (children) {
     return <>{children({
       bpm,
@@ -157,4 +166,6 @@ export const Clock: React.FC<ClockProps> = ({
   }
 
   return null;
-};
+});
+
+Clock.displayName = 'Clock';

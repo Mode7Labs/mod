@@ -61,6 +61,14 @@ Component for audio output:
 
 - [Monitor](/api/output/monitor) - Audio output with device selection
 
+## Visualizations
+
+Components for visualizing audio signals:
+
+- [Oscilloscope](/api/visualizations/oscilloscope) - Waveform visualization
+- [SpectrumAnalyzer](/api/visualizations/spectrum-analyzer) - Frequency spectrum visualization
+- [LevelMeter](/api/visualizations/level-meter) - Audio level meter with peak detection
+
 ## Common Patterns
 
 ### Component Structure

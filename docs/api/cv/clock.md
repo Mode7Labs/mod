@@ -202,6 +202,124 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the Clock from external state using controlled props:
+
+```tsx
+import { Clock, ADSR, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const clockOut = useRef(null);
+  const adsrOut = useRef(null);
+  const toneOut = useRef(null);
+  const [bpm, setBpm] = useState(120);
+  const [isRunning, setRunning] = useState(false);
+
+  return (
+    <>
+      <Clock
+        output={clockOut}
+        bpm={bpm}
+        onBpmChange={setBpm}
+        isRunning={isRunning}
+        onRunningChange={setRunning}
+      />
+
+      <div>
+        <button onClick={() => setRunning(!isRunning)}>
+          {isRunning ? 'Stop' : 'Start'}
+        </button>
+      </div>
+
+      <div>
+        <label>Tempo: {bpm} BPM</label>
+        <input
+          type="range"
+          min="40"
+          max="240"
+          value={bpm}
+          onChange={(e) => setBpm(Number(e.target.value))}
+        />
+      </div>
+
+      <ADSR gate={clockOut} output={adsrOut} />
+      <ToneGenerator output={toneOut} cv={adsrOut} cvAmount={1.0} />
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { Clock, ClockHandle, ADSR, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const clockRef = useRef<ClockHandle>(null);
+  const clockOut = useRef(null);
+  const adsrOut = useRef(null);
+  const toneOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (clockRef.current) {
+      clockRef.current.setBpm(120);
+      clockRef.current.start();
+
+      // Get current state
+      const state = clockRef.current.getState();
+      console.log(state.bpm, state.isRunning);
+    }
+  }, []);
+
+  const tempoRamp = () => {
+    if (!clockRef.current) return;
+
+    let currentBpm = 60;
+    clockRef.current.setBpm(currentBpm);
+    clockRef.current.start();
+
+    const interval = setInterval(() => {
+      if (currentBpm < 180 && clockRef.current) {
+        currentBpm += 5;
+        clockRef.current.setBpm(currentBpm);
+      } else {
+        clearInterval(interval);
+      }
+    }, 500);
+  };
+
+  const tapTempo = () => {
+    // Implement tap tempo functionality
+    // This is a simplified example
+    if (!clockRef.current) return;
+
+    const now = Date.now();
+    // Store tap times and calculate BPM
+    // For demo purposes, just set a tempo
+    clockRef.current.setBpm(140);
+    clockRef.current.start();
+  };
+
+  return (
+    <>
+      <Clock ref={clockRef} output={clockOut} />
+      <ADSR gate={clockOut} output={adsrOut} />
+      <ToneGenerator output={toneOut} cv={adsrOut} cvAmount={1.0} />
+      <button onClick={tempoRamp}>Tempo Ramp (60-180 BPM)</button>
+      <button onClick={tapTempo}>Tap Tempo</button>
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Clock Pulses

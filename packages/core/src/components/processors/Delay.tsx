@@ -1,4 +1,4 @@
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 
@@ -30,35 +30,40 @@ export const Delay: React.FC<DelayProps> = ({
   const [feedback, setFeedback] = useState(0.3);
   const [wet, setWet] = useState(0.5);
 
-  // Only recreate when specific input stream changes, not refs
+  // Track input changes
   const inputKey = input.current?.audioNode ? String(input.current.audioNode) : 'null';
+
+  const delayNodeRef = useRef<DelayNode | null>(null);
+  const feedbackGainRef = useRef<GainNode | null>(null);
+  const wetGainRef = useRef<GainNode | null>(null);
+  const dryGainRef = useRef<GainNode | null>(null);
 
   // Create nodes once
   useEffect(() => {
-    if (!audioContext || !input.current) return;
+    if (!audioContext) return;
 
     // Create delay node
     const delayNode = audioContext.createDelay(5.0);
     delayNode.delayTime.value = time;
+    delayNodeRef.current = delayNode;
 
     // Create feedback gain
     const feedbackGain = audioContext.createGain();
     feedbackGain.gain.value = feedback;
+    feedbackGainRef.current = feedbackGain;
 
     // Create wet/dry mix
     const wetGain = audioContext.createGain();
     wetGain.gain.value = wet;
+    wetGainRef.current = wetGain;
 
     const dryGain = audioContext.createGain();
     dryGain.gain.value = 1 - wet;
+    dryGainRef.current = dryGain;
 
     // Create output gain
     const outputGain = audioContext.createGain();
     outputGain.gain.value = 1.0;
-
-    // Connect input to both dry and delay
-    input.current.gain.connect(dryGain);
-    input.current.gain.connect(delayNode);
 
     // Connect delay feedback loop
     delayNode.connect(feedbackGain);
@@ -94,8 +99,36 @@ export const Delay: React.FC<DelayProps> = ({
       dryGain.disconnect();
       outputGain.disconnect();
       output.current = null;
+      delayNodeRef.current = null;
+      feedbackGainRef.current = null;
+      wetGainRef.current = null;
+      dryGainRef.current = null;
     };
-  }, [audioContext, label, inputKey]);
+  }, [audioContext, label]);
+
+  // Handle input connection
+  useEffect(() => {
+    if (!input.current || !delayNodeRef.current || !dryGainRef.current) return;
+
+    const currentInput = input.current;
+    const delayNode = delayNodeRef.current;
+    const dryGain = dryGainRef.current;
+
+    // Connect input to both dry and delay
+    currentInput.gain.connect(dryGain);
+    currentInput.gain.connect(delayNode);
+
+    return () => {
+      if (currentInput && dryGain && delayNode) {
+        try {
+          currentInput.gain.disconnect(dryGain);
+          currentInput.gain.disconnect(delayNode);
+        } catch (e) {
+          // Already disconnected
+        }
+      }
+    };
+  }, [inputKey]);
 
   // Update time when it changes
   useEffect(() => {

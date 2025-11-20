@@ -236,6 +236,101 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage crossfade state externally using controlled props:
+
+```tsx
+import { CrossFade } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const deck1Out = useRef(null);
+  const deck2Out = useRef(null);
+  const fadeOut = useRef(null);
+
+  const [mix, setMix] = useState(0);
+  const [mode, setMode] = useState<'equal-power' | 'dj-cut'>('equal-power');
+
+  return (
+    <>
+      <CrossFade
+        inputs={[deck1Out, deck2Out]}
+        output={fadeOut}
+        mix={mix}
+        onMixChange={setMix}
+        mode={mode}
+        onModeChange={setMode}
+      />
+
+      <div>
+        <button onClick={() => setMix(0)}>Deck A</button>
+        <button onClick={() => setMix(0.5)}>50/50</button>
+        <button onClick={() => setMix(1)}>Deck B</button>
+      </div>
+
+      <input
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value={mix}
+        onChange={(e) => setMix(Number(e.target.value))}
+      />
+
+      <select value={mode} onChange={(e) => setMode(e.target.value as any)}>
+        <option value="equal-power">Equal Power</option>
+        <option value="dj-cut">DJ Cut</option>
+      </select>
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control crossfade programmatically using refs:
+
+```tsx
+import { CrossFade, CrossFadeHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const deck1Out = useRef(null);
+  const deck2Out = useRef(null);
+  const fadeOut = useRef(null);
+  const fadeRef = useRef<CrossFadeHandle>(null);
+
+  useEffect(() => {
+    if (fadeRef.current) {
+      // Automated DJ-style crossfade
+      fadeRef.current.setMode('dj-cut');
+
+      let direction = 1;
+      let position = 0;
+
+      const interval = setInterval(() => {
+        position += direction * 0.01;
+        if (position >= 1 || position <= 0) {
+          direction *= -1;
+        }
+        fadeRef.current?.setMix(position);
+      }, 50);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  return (
+    <CrossFade
+      ref={fadeRef}
+      inputs={[deck1Out, deck2Out]}
+      output={fadeOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Mix Values

@@ -45,6 +45,7 @@
   width: 40px;
   height: 40px;
   object-fit: contain;
+  display: block;
 }
 
 .sidebar-title {
@@ -52,7 +53,26 @@
   font-size: 24px;
   font-weight: 700;
   color: rgba(255, 255, 245, 0.86);
-  letter-spacing: 0.5px;
+  font-family: var(--mod-brand-font, 'Audiowide', 'Segoe UI', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  padding-top: 0;
+  transform: translateY(3px);
+  position: relative;
+}
+
+.sidebar-title::after {
+  content: 'JS';
+  font-family: var(--mod-brand-font, 'Audiowide', 'Segoe UI', sans-serif);
+  font-size: 0.35em;
+  color: #00e5ff;
+  margin-left: 0.25em;
+  position: relative;
+  bottom: -0.5em;
+  letter-spacing: normal;
 }
 
 .sidebar h2 {
@@ -135,7 +155,6 @@
 }
 
 .wires-svg path {
-  transition: all 0.2s ease;
   cursor: pointer;
   pointer-events: stroke;
 }

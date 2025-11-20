@@ -12,7 +12,7 @@ export { Microphone } from './components/sources/Microphone';
 export type { MicrophoneProps, MicrophoneRenderProps } from './components/sources/Microphone';
 
 export { MP3Deck } from './components/sources/MP3Deck';
-export type { MP3DeckProps, MP3DeckRenderProps } from './components/sources/MP3Deck';
+export type { MP3DeckProps, MP3DeckRenderProps, MP3DeckHandle } from './components/sources/MP3Deck';
 
 export { StreamingAudioDeck } from './components/sources/StreamingAudioDeck';
 export type { StreamingAudioDeckProps, StreamingAudioDeckRenderProps } from './components/sources/StreamingAudioDeck';
@@ -87,7 +87,7 @@ export type { RingModulatorProps, RingModulatorRenderProps } from './components/
 
 // Mixer Components
 export { CrossFade } from './components/mixers/CrossFade';
-export type { CrossFadeProps, CrossFadeRenderProps } from './components/mixers/CrossFade';
+export type { CrossFadeProps, CrossFadeRenderProps, CrossFadeMode } from './components/mixers/CrossFade';
 
 export { Mixer } from './components/mixers/Mixer';
 export type { MixerProps, MixerRenderProps } from './components/mixers/Mixer';
@@ -95,3 +95,13 @@ export type { MixerProps, MixerRenderProps } from './components/mixers/Mixer';
 // Output Components
 export { Monitor } from './components/output/Monitor';
 export type { MonitorProps, MonitorRenderProps } from './components/output/Monitor';
+
+// Visualization Components
+export { Oscilloscope } from './components/visualizations/Oscilloscope';
+export type { OscilloscopeProps, OscilloscopeRenderProps } from './components/visualizations/Oscilloscope';
+
+export { SpectrumAnalyzer } from './components/visualizations/SpectrumAnalyzer';
+export type { SpectrumAnalyzerProps, SpectrumAnalyzerRenderProps } from './components/visualizations/SpectrumAnalyzer';
+
+export { LevelMeter } from './components/visualizations/LevelMeter';
+export type { LevelMeterProps, LevelMeterRenderProps } from './components/visualizations/LevelMeter';

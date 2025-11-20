@@ -1,6 +1,19 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
+
+export interface SequencerHandle {
+  play: () => void;
+  pause: () => void;
+  reset: () => void;
+  getState: () => {
+    steps: number[];
+    currentStep: number;
+    bpm: number;
+    isPlaying: boolean;
+  };
+}
 
 export interface SequencerRenderProps {
   steps: number[];
@@ -19,20 +32,35 @@ export interface SequencerProps {
   gateOutput?: ModStreamRef; // Optional separate gate/trigger output
   label?: string;
   numSteps?: number;
+  // Controlled props
+  steps?: number[];
+  onStepsChange?: (steps: number[]) => void;
+  bpm?: number;
+  onBpmChange?: (bpm: number) => void;
+  // Event callbacks
+  onCurrentStepChange?: (currentStep: number) => void;
+  onPlayingChange?: (isPlaying: boolean) => void;
+  // Render props
   children?: (props: SequencerRenderProps) => ReactNode;
 }
 
-export const Sequencer: React.FC<SequencerProps> = ({
+export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
   output,
   gateOutput: _gateOutput,
   label = 'sequencer',
   numSteps = 8,
+  steps: controlledSteps,
+  onStepsChange,
+  bpm: controlledBpm,
+  onBpmChange,
+  onCurrentStepChange,
+  onPlayingChange,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [steps, setSteps] = useState<number[]>(Array(numSteps).fill(0.5)); // Values 0-1
+  const [steps, setSteps] = useControlledState(controlledSteps, Array(numSteps).fill(0.5), onStepsChange);
   const [currentStep, setCurrentStep] = useState(0);
-  const [bpm, setBpm] = useState(120);
+  const [bpm, setBpm] = useControlledState(controlledBpm, 120, onBpmChange);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const constantSourceRef = useRef<ConstantSourceNode | null>(null);
@@ -164,6 +192,23 @@ export const Sequencer: React.FC<SequencerProps> = ({
     }
   }, [bpm]);
 
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    play,
+    pause,
+    reset,
+    getState: () => ({ steps, currentStep, bpm, isPlaying }),
+  }), [steps, currentStep, bpm, isPlaying]);
+
+  // Event callback effects
+  useEffect(() => {
+    onCurrentStepChange?.(currentStep);
+  }, [currentStep, onCurrentStepChange]);
+
+  useEffect(() => {
+    onPlayingChange?.(isPlaying);
+  }, [isPlaying, onPlayingChange]);
+
   // Render children with state
   if (children) {
     return <>{children({
@@ -180,4 +225,6 @@ export const Sequencer: React.FC<SequencerProps> = ({
   }
 
   return null;
-};
+});
+
+Sequencer.displayName = 'Sequencer';

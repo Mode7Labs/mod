@@ -1,6 +1,13 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
+
+export interface MixerHandle {
+  getState: () => {
+    levels: number[];
+  };
+}
 
 export interface MixerRenderProps {
   levels: number[];
@@ -13,26 +20,30 @@ export interface MixerProps {
   inputs: ModStreamRef[];
   output: ModStreamRef;
   label?: string;
+  // Controlled props
+  levels?: number[];
+  onLevelsChange?: (levels: number[]) => void;
+  // Render props
   children?: (props: MixerRenderProps) => ReactNode;
 }
 
-export const Mixer: React.FC<MixerProps> = ({
+export const Mixer = React.forwardRef<MixerHandle, MixerProps>(({
   inputs,
   output,
   label = 'mixer',
+  levels: controlledLevels,
+  onLevelsChange,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
 
   // Initialize levels based on inputs length
-  const [levels, setLevels] = useState<number[]>(() => inputs.map(() => 1.0));
+  const defaultLevels = inputs.map(() => 1.0);
+  const [levels, setLevels] = useControlledState(controlledLevels, defaultLevels, onLevelsChange);
 
   // Keep refs to nodes
   const inputGainsRef = useRef<GainNode[]>([]);
   const outputGainRef = useRef<GainNode | null>(null);
-
-  // Create nodes - track specific input streams, not just connection state
-  const inputsKey = inputs.map(i => i.current?.audioNode ? String(i.current.audioNode) : 'null').join(',');
 
   // Create output gain and input gains once
   useEffect(() => {
@@ -59,7 +70,7 @@ export const Mixer: React.FC<MixerProps> = ({
 
     // Set output ref with internal gain references
     output.current = {
-      audioNode: inputGains[0], // Representative node
+      audioNode: outputGain, // Output node for downstream connections
       gain: outputGain,
       context: audioContext,
       metadata: {
@@ -85,14 +96,6 @@ export const Mixer: React.FC<MixerProps> = ({
 
     inputs.forEach((input, index) => {
       if (input.current && inputGainsRef.current[index]) {
-        // Disconnect any previous connection
-        try {
-          inputGainsRef.current[index].disconnect();
-          inputGainsRef.current[index].connect(outputGainRef.current!);
-        } catch (e) {
-          // Ignore
-        }
-
         // Connect new input
         input.current.gain.connect(inputGainsRef.current[index]);
       }
@@ -110,7 +113,7 @@ export const Mixer: React.FC<MixerProps> = ({
         }
       });
     };
-  }, [inputsKey]);
+  }, [inputs]);
 
   // Update levels when they change
   useEffect(() => {
@@ -126,12 +129,15 @@ export const Mixer: React.FC<MixerProps> = ({
 
   // Helper to update a single level
   const setLevel = (index: number, value: number) => {
-    setLevels(prev => {
-      const newLevels = [...prev];
-      newLevels[index] = value;
-      return newLevels;
-    });
+    const newLevels = [...levels];
+    newLevels[index] = value;
+    setLevels(newLevels);
   };
+
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    getState: () => ({ levels }),
+  }), [levels]);
 
   // Render children with state
   if (children) {
@@ -144,4 +150,6 @@ export const Mixer: React.FC<MixerProps> = ({
   }
 
   return null;
-};
+});
+
+Mixer.displayName = 'Mixer';

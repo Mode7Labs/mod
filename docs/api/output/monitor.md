@@ -298,6 +298,101 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage monitor state externally using controlled props:
+
+```tsx
+import { Monitor } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const audioOut = useRef(null);
+  const [gain, setGain] = useState(0.75);
+  const [isMuted, setMuted] = useState(false);
+
+  return (
+    <>
+      <Monitor
+        input={audioOut}
+        gain={gain}
+        onGainChange={setGain}
+        isMuted={isMuted}
+        onMutedChange={setMuted}
+      />
+
+      <div>
+        <label>Master Volume: {(gain * 100).toFixed(0)}%</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={gain}
+          onChange={(e) => setGain(Number(e.target.value))}
+          disabled={isMuted}
+        />
+      </div>
+
+      <button onClick={() => setMuted(!isMuted)}>
+        {isMuted ? 'Unmute' : 'Mute'}
+      </button>
+
+      <button onClick={() => setGain(0.75)}>Reset to 75%</button>
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control monitor programmatically using refs:
+
+```tsx
+import { Monitor, MonitorHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const audioOut = useRef(null);
+  const monitorRef = useRef<MonitorHandle>(null);
+
+  useEffect(() => {
+    if (monitorRef.current) {
+      // Fade in from silence
+      let volume = 0;
+      const interval = setInterval(() => {
+        volume += 0.01;
+        if (volume >= 0.75) {
+          volume = 0.75;
+          clearInterval(interval);
+        }
+        monitorRef.current?.setGain(volume);
+      }, 50);
+
+      // Emergency mute on Escape key
+      const handleKeyPress = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          monitorRef.current?.setMuted(true);
+        }
+      };
+      window.addEventListener('keydown', handleKeyPress);
+
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('keydown', handleKeyPress);
+      };
+    }
+  }, []);
+
+  return (
+    <Monitor
+      ref={monitorRef}
+      input={audioOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Volume Control

@@ -1,6 +1,24 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
+
+export interface MP3DeckHandle {
+  play: () => void;
+  pause: () => void;
+  stop: () => void;
+  seek: (time: number) => void;
+  loadFile: (file: File) => void;
+  getState: () => {
+    src: string;
+    gain: number;
+    loop: boolean;
+    isPlaying: boolean;
+    currentTime: number;
+    duration: number;
+    error: string | null;
+  };
+}
 
 export interface MP3DeckRenderProps {
   src: string;
@@ -24,18 +42,39 @@ export interface MP3DeckRenderProps {
 export interface MP3DeckProps {
   output: ModStreamRef;
   label?: string;
+  // Controlled props
+  src?: string;
+  onSrcChange?: (src: string) => void;
+  gain?: number;
+  onGainChange?: (gain: number) => void;
+  loop?: boolean;
+  onLoopChange?: (loop: boolean) => void;
+  // Event callbacks
+  onPlayingChange?: (isPlaying: boolean) => void;
+  onTimeUpdate?: (currentTime: number, duration: number) => void;
+  onError?: (error: string | null) => void;
+  // Render props
   children?: (props: MP3DeckRenderProps) => ReactNode;
 }
 
-export const MP3Deck: React.FC<MP3DeckProps> = ({
+export const MP3Deck = React.forwardRef<MP3DeckHandle, MP3DeckProps>(({
   output,
   label = 'mp3-deck',
+  src: controlledSrc,
+  onSrcChange,
+  gain: controlledGain,
+  onGainChange,
+  loop: controlledLoop,
+  onLoopChange,
+  onPlayingChange,
+  onTimeUpdate,
+  onError,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [src, setSrc] = useState('');
-  const [gain, setGain] = useState(1.0);
-  const [loop, setLoop] = useState(false);
+  const [src, setSrc] = useControlledState(controlledSrc, '', onSrcChange);
+  const [gain, setGain] = useControlledState(controlledGain, 1.0, onGainChange);
+  const [loop, setLoop] = useControlledState(controlledLoop, false, onLoopChange);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -43,6 +82,7 @@ export const MP3Deck: React.FC<MP3DeckProps> = ({
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   // Create audio nodes once
   useEffect(() => {
@@ -119,6 +159,11 @@ export const MP3Deck: React.FC<MP3DeckProps> = ({
       if (output.current?.gain) {
         output.current.gain.disconnect();
       }
+      // Revoke blob URL on unmount
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
       output.current = null;
       audioElementRef.current = null;
       gainNodeRef.current = null;
@@ -141,9 +186,30 @@ export const MP3Deck: React.FC<MP3DeckProps> = ({
 
   // Load file from File object
   const loadFile = (file: File) => {
+    // Revoke previous blob URL to prevent memory leak
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+    }
+
     const url = URL.createObjectURL(file);
+    blobUrlRef.current = url;
     setSrc(url);
   };
+
+  // Auto-pause when output becomes disconnected
+  useEffect(() => {
+    // Check if output is connected by seeing if gain node has any connections
+    const checkConnection = () => {
+      if (!output.current && isPlaying) {
+        // Output was disconnected while playing - pause
+        pause();
+      }
+    };
+
+    // Check periodically (this is a fallback, ideally parent would handle this)
+    const interval = setInterval(checkConnection, 100);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   // Playback controls
   const play = async () => {
@@ -178,6 +244,29 @@ export const MP3Deck: React.FC<MP3DeckProps> = ({
     }
   };
 
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    play,
+    pause,
+    stop,
+    seek,
+    loadFile,
+    getState: () => ({ src, gain, loop, isPlaying, currentTime, duration, error }),
+  }), [src, gain, loop, isPlaying, currentTime, duration, error]);
+
+  // Event callback effects
+  useEffect(() => {
+    onPlayingChange?.(isPlaying);
+  }, [isPlaying, onPlayingChange]);
+
+  useEffect(() => {
+    onTimeUpdate?.(currentTime, duration);
+  }, [currentTime, duration, onTimeUpdate]);
+
+  useEffect(() => {
+    onError?.(error);
+  }, [error, onError]);
+
   if (error) {
     console.warn(`MP3Deck error: ${error}`);
   }
@@ -205,4 +294,6 @@ export const MP3Deck: React.FC<MP3DeckProps> = ({
   }
 
   return null;
-};
+});
+
+MP3Deck.displayName = 'MP3Deck';

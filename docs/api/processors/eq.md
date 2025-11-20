@@ -261,6 +261,89 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage EQ state externally using controlled props:
+
+```tsx
+import { EQ } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const eqOut = useRef(null);
+
+  const [lowGain, setLowGain] = useState(0);
+  const [midGain, setMidGain] = useState(0);
+  const [highGain, setHighGain] = useState(0);
+
+  // Preset functions
+  const applyBrighten = () => {
+    setLowGain(-2);
+    setMidGain(2);
+    setHighGain(6);
+  };
+
+  return (
+    <>
+      <EQ
+        input={inputRef}
+        output={eqOut}
+        lowGain={lowGain}
+        onLowGainChange={setLowGain}
+        midGain={midGain}
+        onMidGainChange={setMidGain}
+        highGain={highGain}
+        onHighGainChange={setHighGain}
+      />
+
+      <button onClick={applyBrighten}>Brighten</button>
+      <button onClick={() => { setLowGain(0); setMidGain(0); setHighGain(0); }}>
+        Reset
+      </button>
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control EQ programmatically using refs:
+
+```tsx
+import { EQ, EQHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const eqOut = useRef(null);
+  const eqRef = useRef<EQHandle>(null);
+
+  useEffect(() => {
+    if (eqRef.current) {
+      // Apply vocal presence boost
+      eqRef.current.setLowFreq(200);
+      eqRef.current.setLowGain(-2);
+      eqRef.current.setMidGain(3);
+      eqRef.current.setHighFreq(8000);
+      eqRef.current.setHighGain(4);
+
+      // Get current state
+      const state = eqRef.current.getState();
+      console.log('EQ settings:', state);
+    }
+  }, []);
+
+  return (
+    <EQ
+      ref={eqRef}
+      input={inputRef}
+      output={eqOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Frequency Bands

@@ -225,6 +225,126 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the Sequencer from external state using controlled props:
+
+```tsx
+import { Sequencer, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const seqOut = useRef(null);
+  const toneOut = useRef(null);
+  const [steps, setSteps] = useState([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+  const [bpm, setBpm] = useState(120);
+  const [isPlaying, setPlaying] = useState(false);
+
+  return (
+    <>
+      <Sequencer
+        output={seqOut}
+        numSteps={8}
+        steps={steps}
+        onStepsChange={setSteps}
+        bpm={bpm}
+        onBpmChange={setBpm}
+        isPlaying={isPlaying}
+        onPlayingChange={setPlaying}
+      >
+        {({ currentStep }) => (
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  backgroundColor: currentStep === index ? 'blue' : 'gray',
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </Sequencer>
+
+      <button onClick={() => setPlaying(!isPlaying)}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+
+      <div>
+        <label>BPM: {bpm}</label>
+        <input
+          type="range"
+          min="40"
+          max="240"
+          value={bpm}
+          onChange={(e) => setBpm(Number(e.target.value))}
+        />
+      </div>
+
+      <ToneGenerator output={toneOut} frequency={200} cv={seqOut} cvAmount={400} />
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { Sequencer, SequencerHandle, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const seqRef = useRef<SequencerHandle>(null);
+  const seqOut = useRef(null);
+  const toneOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (seqRef.current) {
+      const melody = [1.0, 0.8, 0.6, 0.7, 0.5, 0.6, 0.4, 0.5];
+      seqRef.current.setSteps(melody);
+      seqRef.current.setBpm(140);
+
+      // Get current state
+      const state = seqRef.current.getState();
+      console.log(state.steps, state.bpm, state.currentStep);
+    }
+  }, []);
+
+  const randomizeSequence = () => {
+    if (!seqRef.current) return;
+
+    const randomSteps = Array.from({ length: 8 }, () => Math.random());
+    seqRef.current.setSteps(randomSteps);
+  };
+
+  const createArpeggio = () => {
+    if (!seqRef.current) return;
+
+    // Create ascending arpeggio pattern
+    const arpeggio = [0.0, 0.25, 0.5, 0.75, 1.0, 0.75, 0.5, 0.25];
+    seqRef.current.setSteps(arpeggio);
+    seqRef.current.setBpm(160);
+    seqRef.current.play();
+  };
+
+  return (
+    <>
+      <Sequencer ref={seqRef} output={seqOut} numSteps={8} />
+      <ToneGenerator output={toneOut} frequency={220} cv={seqOut} cvAmount={440} />
+      <button onClick={randomizeSequence}>Randomize</button>
+      <button onClick={createArpeggio}>Create Arpeggio</button>
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Step Values

@@ -190,6 +190,153 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the MP3Deck from external state using controlled props:
+
+```tsx
+import { MP3Deck, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const deckOut = useRef(null);
+  const [src, setSrc] = useState('');
+  const [gain, setGain] = useState(1.0);
+  const [loop, setLoop] = useState(false);
+  const [isPlaying, setPlaying] = useState(false);
+
+  return (
+    <>
+      <MP3Deck
+        output={deckOut}
+        src={src}
+        onSrcChange={setSrc}
+        gain={gain}
+        onGainChange={setGain}
+        loop={loop}
+        onLoopChange={setLoop}
+        isPlaying={isPlaying}
+        onPlayingChange={setPlaying}
+      >
+        {({ loadFile, currentTime, duration, seek }) => (
+          <div>
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) loadFile(file);
+              }}
+            />
+
+            <div>
+              <label>Position: {currentTime.toFixed(1)}s / {duration.toFixed(1)}s</label>
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                step="0.1"
+                value={currentTime}
+                onChange={(e) => seek(Number(e.target.value))}
+              />
+            </div>
+          </div>
+        )}
+      </MP3Deck>
+
+      <button onClick={() => setPlaying(!isPlaying)}>
+        {isPlaying ? 'Pause' : 'Play'}
+      </button>
+
+      <label>
+        <input
+          type="checkbox"
+          checked={loop}
+          onChange={(e) => setLoop(e.target.checked)}
+        />
+        Loop
+      </label>
+
+      <Monitor input={deckOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { MP3Deck, MP3DeckHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const deckRef = useRef<MP3DeckHandle>(null);
+  const deckOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (deckRef.current) {
+      deckRef.current.setSrc('/path/to/audio.mp3');
+      deckRef.current.setGain(0.8);
+      deckRef.current.setLoop(false);
+
+      // Get current state
+      const state = deckRef.current.getState();
+      console.log(state.src, state.isPlaying, state.currentTime, state.duration);
+    }
+  }, []);
+
+  const createDJTransition = () => {
+    if (!deckRef.current) return;
+
+    // Fade out over 3 seconds, then stop
+    const startGain = deckRef.current.getState().gain;
+    let progress = 0;
+
+    const interval = setInterval(() => {
+      progress += 0.05;
+      if (progress <= 1 && deckRef.current) {
+        const newGain = startGain * (1 - progress);
+        deckRef.current.setGain(newGain);
+      } else {
+        clearInterval(interval);
+        deckRef.current?.stop();
+      }
+    }, 150);
+  };
+
+  const skipToChorus = () => {
+    // Skip to 60 seconds (example chorus position)
+    deckRef.current?.seek(60);
+  };
+
+  return (
+    <>
+      <MP3Deck ref={deckRef} output={deckOut}>
+        {({ loadFile, play }) => (
+          <input
+            type="file"
+            accept="audio/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                loadFile(file);
+                setTimeout(play, 100);
+              }
+            }}
+          />
+        )}
+      </MP3Deck>
+      <button onClick={createDJTransition}>Fade Out & Stop</button>
+      <button onClick={skipToChorus}>Skip to Chorus</button>
+      <Monitor input={deckOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Supported Formats

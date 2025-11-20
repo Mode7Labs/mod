@@ -33,6 +33,10 @@ import {
   Mixer,
   // Output
   Monitor,
+  // Visualizations
+  Oscilloscope,
+  SpectrumAnalyzer,
+  LevelMeter,
 } from '@mode-7/mod';
 import { Volume2, VolumeX, Play, Pause, RefreshCw, Mic, MicOff, Square, Upload, Repeat, Zap, X, RotateCcw } from 'lucide-react';
 import { Slider } from './controls/Slider';
@@ -40,6 +44,9 @@ import { Select } from './controls/Select';
 import { IconButton } from './controls/IconButton';
 import { FileUpload } from './controls/FileUpload';
 import { TextInput } from './controls/TextInput';
+import { OscilloscopeCanvas } from './visualizers/OscilloscopeCanvas';
+import { SpectrumCanvas } from './visualizers/SpectrumCanvas';
+import { LevelMeterCanvas } from './visualizers/LevelMeterCanvas';
 
 interface ModuleRendererProps {
   moduleType: string;
@@ -145,12 +152,17 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
                 formatValue={(v) => v.toFixed(2)}
               />
               <Select
-                value={controls.selectedDeviceId || ''}
-                onValueChange={(deviceId) => controls.selectDevice(deviceId)}
-                options={controls.devices.map(device => ({
-                  value: device.deviceId,
-                  label: device.label || 'Unknown Device'
-                }))}
+                value={controls.selectedDeviceId || '__default__'}
+                onValueChange={(deviceId) => controls.selectDevice(deviceId === '__default__' ? '' : deviceId)}
+                options={[
+                  { value: '__default__', label: 'Default Device' },
+                  ...controls.devices
+                    .filter(device => device.deviceId) // Filter out devices with empty deviceId
+                    .map(device => ({
+                      value: device.deviceId,
+                      label: device.label || 'Unknown Device'
+                    }))
+                ]}
                 placeholder="Select Input Device"
               />
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -187,12 +199,17 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
                 formatValue={(v) => v.toFixed(2)}
               />
               <Select
-                value={controls.selectedDeviceId || ''}
-                onValueChange={(deviceId) => controls.selectDevice(deviceId)}
-                options={controls.devices.map(device => ({
-                  value: device.deviceId,
-                  label: device.label || 'Unknown Device'
-                }))}
+                value={controls.selectedDeviceId || '__default__'}
+                onValueChange={(deviceId) => controls.selectDevice(deviceId === '__default__' ? '' : deviceId)}
+                options={[
+                  { value: '__default__', label: 'Default Device' },
+                  ...controls.devices
+                    .filter(device => device.deviceId) // Filter out devices with empty deviceId
+                    .map(device => ({
+                      value: device.deviceId,
+                      label: device.label || 'Unknown Device'
+                    }))
+                ]}
                 placeholder="Select Output Device"
               />
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -431,7 +448,12 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
 
     case 'Mixer':
       return output ? (
-        <Mixer inputs={[input || { current: null }, input2 || { current: null }, input3 || { current: null }, input4 || { current: null }]} output={output}>
+        <Mixer inputs={[
+          inputStreams[0] || { current: null },
+          inputStreams[1] || { current: null },
+          inputStreams[2] || { current: null },
+          inputStreams[3] || { current: null }
+        ]} output={output}>
           {(controls) => (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {controls.levels.map((level, i) => (
@@ -1045,6 +1067,94 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
           )}
         </StreamingAudioDeck>
       ) : null;
+
+    case 'Oscilloscope':
+      return input ? (
+        <Oscilloscope input={input}>
+          {({ dataArray, bufferLength, isActive }) => (
+            <div style={{ width: '100%', height: '150px', backgroundColor: '#0a0a0a', borderRadius: '4px', overflow: 'hidden' }}>
+              {isActive ? (
+                <OscilloscopeCanvas
+                  dataArray={dataArray}
+                  bufferLength={bufferLength}
+                  color="#00ff88"
+                  lineWidth={2}
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666', fontSize: '12px' }}>
+                  No Signal
+                </div>
+              )}
+            </div>
+          )}
+        </Oscilloscope>
+      ) : (
+        <div style={{ width: '100%', height: '150px', backgroundColor: '#0a0a0a', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: '12px', border: '1px solid #1a1a1a' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '4px', opacity: 0.5 }}>───────</div>
+            <div>No Signal</div>
+            <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '4px' }}>Connect Input</div>
+          </div>
+        </div>
+      );
+
+    case 'SpectrumAnalyzer':
+      return input ? (
+        <SpectrumAnalyzer input={input}>
+          {({ dataArray, bufferLength, isActive }) => (
+            <div style={{ width: '100%', height: '150px', backgroundColor: '#0a0a0a', borderRadius: '4px', overflow: 'hidden' }}>
+              {isActive ? (
+                <SpectrumCanvas
+                  dataArray={dataArray}
+                  bufferLength={bufferLength}
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666', fontSize: '12px' }}>
+                  No Signal
+                </div>
+              )}
+            </div>
+          )}
+        </SpectrumAnalyzer>
+      ) : (
+        <div style={{ width: '100%', height: '150px', backgroundColor: '#0a0a0a', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: '12px', border: '1px solid #1a1a1a' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '4px', opacity: 0.5 }}>▂▃▅▇█▇▅▃▂</div>
+            <div>No Signal</div>
+            <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '4px' }}>Connect Input</div>
+          </div>
+        </div>
+      );
+
+    case 'LevelMeter':
+      return input ? (
+        <LevelMeter input={input}>
+          {({ level, peak, isClipping, isActive }) => (
+            <div style={{ width: '100%', height: '60px', backgroundColor: '#0a0a0a', borderRadius: '4px', overflow: 'hidden' }}>
+              {isActive ? (
+                <LevelMeterCanvas
+                  level={level}
+                  peak={peak}
+                  isClipping={isClipping}
+                  orientation="horizontal"
+                />
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#666', fontSize: '12px' }}>
+                  No Signal
+                </div>
+              )}
+            </div>
+          )}
+        </LevelMeter>
+      ) : (
+        <div style={{ width: '100%', height: '60px', backgroundColor: '#0a0a0a', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: '12px', border: '1px solid #1a1a1a' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: '4px', opacity: 0.5 }}>━━━━━━━━━━</div>
+            <div>No Signal</div>
+            <div style={{ fontSize: '10px', opacity: 0.5, marginTop: '4px' }}>Connect Input</div>
+          </div>
+        </div>
+      );
 
     default:
       return <div style={{ fontSize: '10px', color: '#999' }}>No UI</div>;

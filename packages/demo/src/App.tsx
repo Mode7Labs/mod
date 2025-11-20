@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import { flushSync } from 'react-dom';
 import {
   AudioProvider,
   // Sources
@@ -33,6 +34,10 @@ import {
   Mixer,
   // Output
   Monitor,
+  // Visualizations
+  Oscilloscope,
+  SpectrumAnalyzer,
+  LevelMeter,
 } from '@mode-7/mod';
 import { ModuleWrapper } from './components/ModuleWrapper';
 import { ModuleRenderer } from './components/ModuleRenderer';
@@ -77,6 +82,7 @@ function ModularSynth() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const mousePosRef = useRef<Position>({ x: 0, y: 0 });
   const rafIdRef = useRef<number | null>(null);
+  const portPositionCacheRef = useRef<Map<string, Position>>(new Map());
 
   // Create stream refs map
   const streamRefs = useRef<Map<string, any>>(new Map());
@@ -138,6 +144,7 @@ function ModularSynth() {
 
   const moveModule = (id: string, position: Position) => {
     setModules(prev => prev.map(m => m.id === id ? { ...m, position } : m));
+    clearPortPositionCache();
   };
 
   const deleteModule = (id: string) => {
@@ -148,8 +155,20 @@ function ModularSynth() {
     ));
   };
 
-  // Get position of a port element
+  // Clear port position cache when modules move
+  const clearPortPositionCache = () => {
+    portPositionCacheRef.current.clear();
+  };
+
+  // Get position of a port element with caching
   const getPortPosition = (moduleId: string, portId: string): Position | null => {
+    const cacheKey = `${moduleId}-${portId}`;
+
+    // Check cache first
+    if (portPositionCacheRef.current.has(cacheKey)) {
+      return portPositionCacheRef.current.get(cacheKey)!;
+    }
+
     // Find the port dot element directly
     const portDot = document.querySelector(
       `[data-module-id="${moduleId}"][data-port-id="${portId}"] .port-dot`
@@ -160,10 +179,15 @@ function ModularSynth() {
     const dotRect = portDot.getBoundingClientRect();
     const canvasRect = canvasRef.current.getBoundingClientRect();
 
-    return {
+    const position = {
       x: dotRect.left + dotRect.width / 2 - canvasRect.left,
       y: dotRect.top + dotRect.height / 2 - canvasRect.top,
     };
+
+    // Cache the result
+    portPositionCacheRef.current.set(cacheKey, position);
+
+    return position;
   };
 
   // Handle starting to drag a connection
@@ -224,18 +248,25 @@ function ModularSynth() {
 
       // Check if it's an input port and not from the same module
       if (port?.type === 'input' && hoveredPort.moduleId !== draggingConnection.from.moduleId) {
-        // Create the connection
+        // Find and delete any existing connection to this input port first
+        const existingConnection = connections.find(c => c.to.portId === hoveredPort.portId);
+        if (existingConnection) {
+          // Remove the old connection first (this will trigger cleanup in the components)
+          // Use flushSync to force this update to complete before the next one
+          flushSync(() => {
+            setConnections(prev => prev.filter(c => c.id !== existingConnection.id));
+          });
+        }
+
+        // Create the new connection
         const newConnection: Connection = {
           id: `conn-${Date.now()}`,
           from: draggingConnection.from,
           to: { moduleId: hoveredPort.moduleId, portId: hoveredPort.portId },
         };
 
-        // Remove any existing connection to this input port
-        setConnections(prev => [
-          ...prev.filter(c => c.to.portId !== hoveredPort.portId),
-          newConnection
-        ]);
+        // Add the new connection
+        setConnections(prev => [...prev, newConnection]);
       }
     }
 
@@ -246,7 +277,15 @@ function ModularSynth() {
   // Handle clicking on a wire to delete it
   const handleWireClick = (connectionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Find the connection being removed
+    const connectionToRemove = connections.find(c => c.id === connectionId);
+
+    // Remove the connection
     setConnections(prev => prev.filter(c => c.id !== connectionId));
+
+    // Important: Don't clean up the stream ref here - other connections might use the same output port
+    // The inputStreams mapping will handle returning null for disconnected inputs
   };
 
   // Check if a port is connected
@@ -291,8 +330,8 @@ function ModularSynth() {
       {/* Sidebar */}
       <div className="sidebar">
         <a href="/mod/" className="sidebar-header">
-          <img src={logo} alt="Mod Logo" className="sidebar-logo" />
-          <h1 className="sidebar-title">mod</h1>
+          <img src={logo} alt="MOD Logo" className="sidebar-logo" />
+          <h1 className="sidebar-title">MOD</h1>
         </a>
 
         <div className="module-category">
@@ -342,6 +381,13 @@ function ModularSynth() {
           <h3>Output</h3>
           {renderModuleButton('Monitor')}
         </div>
+
+        <div className="module-category">
+          <h3>Visualizations</h3>
+          {renderModuleButton('Oscilloscope')}
+          {renderModuleButton('SpectrumAnalyzer')}
+          {renderModuleButton('LevelMeter')}
+        </div>
       </div>
 
       {/* Canvas */}
@@ -355,8 +401,8 @@ function ModularSynth() {
       >
         {/* SVG for wires */}
         <svg className="wires-svg">
-          {/* Render existing connections */}
-          {connections.map((conn) => {
+          {/* Render existing connections - memoized */}
+          {useMemo(() => connections.map((conn) => {
             const fromPos = getPortPosition(conn.from.moduleId, conn.from.portId);
             const toPos = getPortPosition(conn.to.moduleId, conn.to.portId);
 
@@ -392,7 +438,7 @@ function ModularSynth() {
                 />
               </g>
             );
-          })}
+          }), [connections, modules])}
 
           {/* Render dragging connection */}
           {draggingConnection && (() => {

@@ -228,6 +228,106 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage mixer state externally using controlled props:
+
+```tsx
+import { Mixer } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const input1 = useRef(null);
+  const input2 = useRef(null);
+  const input3 = useRef(null);
+  const mixOut = useRef(null);
+
+  const [levels, setLevels] = useState([1, 1, 1]);
+
+  const setLevel = (index: number, value: number) => {
+    setLevels(prev => {
+      const newLevels = [...prev];
+      newLevels[index] = value;
+      return newLevels;
+    });
+  };
+
+  return (
+    <>
+      <Mixer
+        inputs={[input1, input2, input3]}
+        output={mixOut}
+        levels={levels}
+        onLevelsChange={setLevels}
+      />
+
+      <button onClick={() => setLevels([1, 1, 1])}>Reset All</button>
+      <button onClick={() => setLevels([0, 0, 0])}>Mute All</button>
+
+      {levels.map((level, i) => (
+        <div key={i}>
+          <label>Channel {i + 1}: {(level * 100).toFixed(0)}%</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={level}
+            onChange={(e) => setLevel(i, Number(e.target.value))}
+          />
+        </div>
+      ))}
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control mixer programmatically using refs:
+
+```tsx
+import { Mixer, MixerHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const input1 = useRef(null);
+  const input2 = useRef(null);
+  const input3 = useRef(null);
+  const mixOut = useRef(null);
+  const mixerRef = useRef<MixerHandle>(null);
+
+  useEffect(() => {
+    if (mixerRef.current) {
+      // Fade in channels one by one
+      let channel = 0;
+      const interval = setInterval(() => {
+        if (channel < 3) {
+          mixerRef.current?.setLevel(channel, 1);
+          channel++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 1000);
+
+      // Get current state
+      const state = mixerRef.current.getState();
+      console.log('Mixer levels:', state.levels);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  return (
+    <Mixer
+      ref={mixerRef}
+      inputs={[input1, input2, input3]}
+      output={mixOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Level Values

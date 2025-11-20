@@ -218,6 +218,135 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the ADSR from external state using controlled props:
+
+```tsx
+import { ADSR, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const adsrOut = useRef(null);
+  const toneOut = useRef(null);
+  const [attack, setAttack] = useState(0.01);
+  const [decay, setDecay] = useState(0.1);
+  const [sustain, setSustain] = useState(0.7);
+  const [release, setRelease] = useState(0.3);
+
+  return (
+    <>
+      <ADSR
+        output={adsrOut}
+        attack={attack}
+        onAttackChange={setAttack}
+        decay={decay}
+        onDecayChange={setDecay}
+        sustain={sustain}
+        onSustainChange={setSustain}
+        release={release}
+        onReleaseChange={setRelease}
+      >
+        {({ trigger, releaseGate }) => (
+          <button onMouseDown={trigger} onMouseUp={releaseGate}>
+            Play Note
+          </button>
+        )}
+      </ADSR>
+
+      <div>
+        <label>Attack: {attack.toFixed(3)}s</label>
+        <input
+          type="range"
+          min="0.001"
+          max="2"
+          step="0.001"
+          value={attack}
+          onChange={(e) => setAttack(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Sustain: {sustain.toFixed(2)}</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={sustain}
+          onChange={(e) => setSustain(Number(e.target.value))}
+        />
+      </div>
+
+      <ToneGenerator output={toneOut} cv={adsrOut} cvAmount={1.0} />
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { ADSR, ADSRHandle, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const adsrRef = useRef<ADSRHandle>(null);
+  const adsrOut = useRef(null);
+  const toneOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (adsrRef.current) {
+      adsrRef.current.setAttack(0.01);
+      adsrRef.current.setDecay(0.1);
+      adsrRef.current.setSustain(0.7);
+      adsrRef.current.setRelease(0.3);
+
+      // Get current state
+      const state = adsrRef.current.getState();
+      console.log(state.attack, state.decay, state.sustain, state.release);
+    }
+  }, []);
+
+  const playNote = (durationMs: number) => {
+    if (!adsrRef.current) return;
+
+    adsrRef.current.trigger();
+    setTimeout(() => {
+      adsrRef.current?.releaseGate();
+    }, durationMs);
+  };
+
+  const playMelody = () => {
+    const notes = [
+      { duration: 200 },
+      { duration: 400 },
+      { duration: 200 },
+      { duration: 600 },
+    ];
+
+    let delay = 0;
+    notes.forEach((note) => {
+      setTimeout(() => playNote(note.duration), delay);
+      delay += note.duration + 100; // Add gap between notes
+    });
+  };
+
+  return (
+    <>
+      <ADSR ref={adsrRef} output={adsrOut} />
+      <ToneGenerator output={toneOut} frequency={440} cv={adsrOut} cvAmount={1.0} />
+      <button onClick={playMelody}>Play Melody</button>
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### ADSR Stages

@@ -1,8 +1,17 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
 
 export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';
+
+export interface ToneGeneratorHandle {
+  getState: () => {
+    frequency: number;
+    gain: number;
+    waveform: OscillatorType;
+  };
+}
 
 export interface ToneGeneratorRenderProps {
   frequency: number;
@@ -17,30 +26,37 @@ export interface ToneGeneratorRenderProps {
 export interface ToneGeneratorProps {
   output: ModStreamRef;
   label?: string;
-  // Initial values (can be overridden by children)
+  // Controlled props
   frequency?: number;
+  onFrequencyChange?: (frequency: number) => void;
   gain?: number;
+  onGainChange?: (gain: number) => void;
   waveform?: OscillatorType;
+  onWaveformChange?: (waveform: OscillatorType) => void;
   // CV inputs
   cv?: ModStreamRef;
   cvAmount?: number;
+  // Render props
   children?: (props: ToneGeneratorRenderProps) => ReactNode;
 }
 
-export const ToneGenerator: React.FC<ToneGeneratorProps> = ({
+export const ToneGenerator = React.forwardRef<ToneGeneratorHandle, ToneGeneratorProps>(({
   output,
   label = 'tone-generator',
-  frequency: initialFrequency = 440,
-  gain: initialGain = 0.3,
-  waveform: initialWaveform = 'square',
+  frequency: controlledFrequency,
+  onFrequencyChange,
+  gain: controlledGain,
+  onGainChange,
+  waveform: controlledWaveform,
+  onWaveformChange,
   cv,
   cvAmount = 100,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [frequency, setFrequency] = useState(initialFrequency);
-  const [gain, setGain] = useState(initialGain);
-  const [waveform, setWaveform] = useState<OscillatorType>(initialWaveform);
+  const [frequency, setFrequency] = useControlledState(controlledFrequency, 440, onFrequencyChange);
+  const [gain, setGain] = useControlledState(controlledGain, 0.3, onGainChange);
+  const [waveform, setWaveform] = useControlledState<OscillatorType>(controlledWaveform, 'square', onWaveformChange);
 
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -146,6 +162,11 @@ export const ToneGenerator: React.FC<ToneGeneratorProps> = ({
     }
   }, [cvAmount]);
 
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    getState: () => ({ frequency, gain, waveform }),
+  }), [frequency, gain, waveform]);
+
   // Render children with state
   if (children) {
     return <>{children({
@@ -160,4 +181,6 @@ export const ToneGenerator: React.FC<ToneGeneratorProps> = ({
   }
 
   return null;
-};
+});
+
+ToneGenerator.displayName = 'ToneGenerator';

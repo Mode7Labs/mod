@@ -147,6 +147,11 @@ function SimpleSynth() {
 ### Output
 - **Monitor** - Audio output with device selection and muting
 
+### Visualizations
+- **Oscilloscope** - Waveform visualization showing time-domain audio data
+- **SpectrumAnalyzer** - Frequency spectrum visualization with color-coded bars
+- **LevelMeter** - Audio level meter with peak detection and clipping indicator
+
 ## Architecture
 
 mod follows a modular architecture inspired by hardware synthesizers:

@@ -1,6 +1,18 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
+
+export interface StreamingAudioDeckHandle {
+  play: () => void;
+  pause: () => void;
+  getState: () => {
+    url: string;
+    gain: number;
+    isPlaying: boolean;
+    error: string | null;
+  };
+}
 
 export interface StreamingAudioDeckRenderProps {
   url: string;
@@ -17,17 +29,32 @@ export interface StreamingAudioDeckRenderProps {
 export interface StreamingAudioDeckProps {
   output: ModStreamRef;
   label?: string;
+  // Controlled props
+  url?: string;
+  onUrlChange?: (url: string) => void;
+  gain?: number;
+  onGainChange?: (gain: number) => void;
+  // Event callbacks
+  onPlayingChange?: (isPlaying: boolean) => void;
+  onError?: (error: string | null) => void;
+  // Render props
   children?: (props: StreamingAudioDeckRenderProps) => ReactNode;
 }
 
-export const StreamingAudioDeck: React.FC<StreamingAudioDeckProps> = ({
+export const StreamingAudioDeck = React.forwardRef<StreamingAudioDeckHandle, StreamingAudioDeckProps>(({
   output,
   label = 'streaming-audio-deck',
+  url: controlledUrl,
+  onUrlChange,
+  gain: controlledGain,
+  onGainChange,
+  onPlayingChange,
+  onError,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [url, setUrl] = useState('');
-  const [gain, setGain] = useState(1.0);
+  const [url, setUrl] = useControlledState(controlledUrl, '', onUrlChange);
+  const [gain, setGain] = useControlledState(controlledGain, 1.0, onGainChange);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,32 +94,45 @@ export const StreamingAudioDeck: React.FC<StreamingAudioDeckProps> = ({
   useEffect(() => {
     if (!audioContext || !url || !gainNodeRef.current) return;
 
+    // Capture whether we should auto-play the new URL
+    const shouldAutoPlay = audioElementRef.current?.paused === false;
+
+    // Store references for cleanup
     let audioElement: HTMLAudioElement | null = null;
     let sourceNode: MediaElementAudioSourceNode | null = null;
 
-    const setupStreaming = () => {
+    const setupStreaming = async () => {
       try {
-        // Disconnect previous source if exists
+        // Clean up previous source completely
         if (sourceNodeRef.current) {
           try {
             sourceNodeRef.current.disconnect();
           } catch (e) {
             // Already disconnected
           }
+          sourceNodeRef.current = null;
         }
 
-        // Stop previous audio element
+        // Stop and remove previous audio element completely
         if (audioElementRef.current) {
-          audioElementRef.current.pause();
-          audioElementRef.current.src = '';
+          // Remove event listeners to prevent state updates during cleanup
+          const oldElement = audioElementRef.current;
+          oldElement.pause();
+          oldElement.removeAttribute('src');
+          oldElement.load(); // Important: release resources
+          audioElementRef.current = null;
         }
 
-        // Create audio element for streaming
-        audioElement = new Audio(url);
+        // Reset error state when loading new URL
+        setError(null);
+
+        // Create a fresh audio element for streaming
+        audioElement = new Audio();
         audioElement.crossOrigin = 'anonymous';
+        audioElement.src = url;
         audioElementRef.current = audioElement;
 
-        // Create source from audio element
+        // Create source from the new audio element
         sourceNode = audioContext.createMediaElementSource(audioElement);
         sourceNodeRef.current = sourceNode;
 
@@ -105,18 +145,40 @@ export const StreamingAudioDeck: React.FC<StreamingAudioDeckProps> = ({
         }
 
         // Set up event listeners
-        audioElement.addEventListener('play', () => setIsPlaying(true));
-        audioElement.addEventListener('pause', () => setIsPlaying(false));
-        audioElement.addEventListener('ended', () => setIsPlaying(false));
-
-        audioElement.addEventListener('error', (e) => {
+        const handlePlay = () => setIsPlaying(true);
+        const handlePause = () => setIsPlaying(false);
+        const handleEnded = () => setIsPlaying(false);
+        const handleError = (e: Event) => {
           setError('Failed to load stream');
           console.error('Stream error:', e);
-        });
+        };
+
+        audioElement.addEventListener('play', handlePlay);
+        audioElement.addEventListener('pause', handlePause);
+        audioElement.addEventListener('ended', handleEnded);
+        audioElement.addEventListener('error', handleError);
+
+        // If we were playing before, start playing the new URL
+        if (shouldAutoPlay) {
+          // Resume audio context if suspended
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+          try {
+            await audioElement.play();
+            setIsPlaying(true);
+          } catch (err) {
+            console.warn('Auto-play failed for new URL:', err);
+            setIsPlaying(false);
+          }
+        } else {
+          setIsPlaying(false);
+        }
 
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to setup stream');
         console.error('StreamingAudioDeck error:', err);
+        setIsPlaying(false);
       }
     };
 
@@ -124,15 +186,20 @@ export const StreamingAudioDeck: React.FC<StreamingAudioDeckProps> = ({
 
     // Cleanup when URL changes
     return () => {
+      if (sourceNode) {
+        try {
+          sourceNode.disconnect();
+        } catch (e) {
+          // Already disconnected
+        }
+      }
       if (audioElement) {
         audioElement.pause();
-        audioElement.src = '';
+        audioElement.removeAttribute('src');
+        audioElement.load();
       }
-      if (sourceNode) {
-        sourceNode.disconnect();
-      }
-      audioElementRef.current = null;
       sourceNodeRef.current = null;
+      audioElementRef.current = null;
     };
   }, [audioContext, url]);
 
@@ -163,6 +230,22 @@ export const StreamingAudioDeck: React.FC<StreamingAudioDeckProps> = ({
     }
   };
 
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    play,
+    pause,
+    getState: () => ({ url, gain, isPlaying, error }),
+  }), [url, gain, isPlaying, error]);
+
+  // Event callback effects
+  useEffect(() => {
+    onPlayingChange?.(isPlaying);
+  }, [isPlaying, onPlayingChange]);
+
+  useEffect(() => {
+    onError?.(error);
+  }, [error, onError]);
+
   if (error) {
     console.warn(`StreamingAudioDeck error: ${error}`);
   }
@@ -183,4 +266,6 @@ export const StreamingAudioDeck: React.FC<StreamingAudioDeckProps> = ({
   }
 
   return null;
-};
+});
+
+StreamingAudioDeck.displayName = 'StreamingAudioDeck';

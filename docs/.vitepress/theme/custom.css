@@ -1,0 +1,38 @@
+:root {
+  --mod-brand-font: "Audiowide", "Segoe UI", sans-serif;
+}
+
+.VPNavBarTitle .logo {
+  position: relative;
+  top: -3px; /* tweak the value */
+}
+
+.mod-brand,
+.VPNavBarTitle .title,
+.VPNavBarTitle .title span {
+  font-family: var(--mod-brand-font);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  /* position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2em; */
+}
+
+.mod-brand::after,
+.VPNavBarTitle .title::after {
+  content: "JS";
+  font-family: var(--mod-brand-font);
+  font-size: 0.35em;
+  color: #00e5ff;
+  letter-spacing: normal;
+  margin-left: 0.15em;
+  transform: translateY(4px);
+}
+
+.VPHomeHero .name {
+  font-family: var(--mod-brand-font);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+}

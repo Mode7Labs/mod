@@ -1,10 +1,23 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
 
 export interface AudioDevice {
   deviceId: string;
   label: string;
+}
+
+export interface MicrophoneHandle {
+  selectDevice: (deviceId: string) => void;
+  refreshDevices: () => Promise<void>;
+  getState: () => {
+    gain: number;
+    isMuted: boolean;
+    devices: AudioDevice[];
+    selectedDeviceId: string | null;
+    error: string | null;
+  };
 }
 
 export interface MicrophoneRenderProps {
@@ -24,21 +37,44 @@ export interface MicrophoneProps {
   output: ModStreamRef;
   label?: string;
   deviceId?: string; // Optional: pre-select a device
+  // Controlled props
+  gain?: number;
+  onGainChange?: (gain: number) => void;
+  isMuted?: boolean;
+  onMutedChange?: (isMuted: boolean) => void;
+  selectedDeviceId?: string;
+  onSelectedDeviceIdChange?: (deviceId: string | null) => void;
+  // Event callbacks
+  onDevicesChange?: (devices: AudioDevice[]) => void;
+  onError?: (error: string | null) => void;
+  // Render props
   children?: (props: MicrophoneRenderProps) => ReactNode;
 }
 
-export const Microphone: React.FC<MicrophoneProps> = ({
+export const Microphone = React.forwardRef<MicrophoneHandle, MicrophoneProps>(({
   output,
   label = 'microphone',
   deviceId: initialDeviceId,
+  gain: controlledGain,
+  onGainChange,
+  isMuted: controlledMuted,
+  onMutedChange,
+  selectedDeviceId: controlledDeviceId,
+  onSelectedDeviceIdChange,
+  onDevicesChange,
+  onError,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [gain, setGain] = useState(1.0);
-  const [isMuted, setMuted] = useState(false);
+  const [gain, setGain] = useControlledState(controlledGain, 1.0, onGainChange);
+  const [isMuted, setMuted] = useControlledState(controlledMuted, false, onMutedChange);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<AudioDevice[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(initialDeviceId || null);
+  const [selectedDeviceId, setSelectedDeviceId] = useControlledState(
+    controlledDeviceId,
+    initialDeviceId || null,
+    onSelectedDeviceIdChange
+  );
 
   const gainNodeRef = useRef<GainNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -72,7 +108,11 @@ export const Microphone: React.FC<MicrophoneProps> = ({
 
   // Setup microphone with selected device
   useEffect(() => {
-    if (!audioContext || !selectedDeviceId) return;
+    if (!audioContext) return;
+
+    // If no device selected and we have devices, don't setup yet (waiting for user selection)
+    // But if we have no devices list yet, we should setup to trigger permission request
+    if (!selectedDeviceId && devices.length > 0) return;
 
     const setupMicrophone = async () => {
       try {
@@ -84,11 +124,19 @@ export const Microphone: React.FC<MicrophoneProps> = ({
           sourceNodeRef.current.disconnect();
         }
 
+        // Build audio constraints - treat 'default'/null/empty as "let browser pick"
+        const audioConstraints: boolean | MediaTrackConstraints = selectedDeviceId && selectedDeviceId !== 'default'
+          ? { deviceId: { exact: selectedDeviceId } }
+          : true;  // No device constraint - let browser pick default
+
         // Request microphone access with specific device
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: { deviceId: { exact: selectedDeviceId } }
+          audio: audioConstraints
         });
         mediaStreamRef.current = mediaStream;
+
+        // Refresh device list now that we have permission
+        await refreshDevices();
 
         // Create source from media stream
         const sourceNode = audioContext.createMediaStreamSource(mediaStream);
@@ -140,7 +188,7 @@ export const Microphone: React.FC<MicrophoneProps> = ({
       mediaStreamRef.current = null;
       gainNodeRef.current = null;
     };
-  }, [audioContext, label, selectedDeviceId]);
+  }, [audioContext, label, selectedDeviceId, devices.length]);
 
   // Update gain when it changes
   useEffect(() => {
@@ -160,6 +208,22 @@ export const Microphone: React.FC<MicrophoneProps> = ({
   const selectDevice = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
   };
+
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    selectDevice,
+    refreshDevices,
+    getState: () => ({ gain, isMuted, devices, selectedDeviceId, error }),
+  }), [gain, isMuted, devices, selectedDeviceId, error]);
+
+  // Event callback effects
+  useEffect(() => {
+    onDevicesChange?.(devices);
+  }, [devices, onDevicesChange]);
+
+  useEffect(() => {
+    onError?.(error);
+  }, [error, onError]);
 
   if (error) {
     console.warn(`Microphone error: ${error}`);
@@ -182,4 +246,6 @@ export const Microphone: React.FC<MicrophoneProps> = ({
   }
 
   return null;
-};
+});
+
+Microphone.displayName = 'Microphone';

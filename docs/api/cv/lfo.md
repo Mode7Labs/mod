@@ -182,6 +182,127 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the LFO from external state using controlled props:
+
+```tsx
+import { LFO, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const lfoOut = useRef(null);
+  const toneOut = useRef(null);
+  const [frequency, setFrequency] = useState(2.0);
+  const [amplitude, setAmplitude] = useState(1.0);
+  const [waveform, setWaveform] = useState<LFOWaveform>('sine');
+
+  return (
+    <>
+      <LFO
+        output={lfoOut}
+        frequency={frequency}
+        onFrequencyChange={setFrequency}
+        amplitude={amplitude}
+        onAmplitudeChange={setAmplitude}
+        waveform={waveform}
+        onWaveformChange={setWaveform}
+      />
+
+      <div>
+        <label>LFO Rate: {frequency.toFixed(2)} Hz</label>
+        <input
+          type="range"
+          min="0.1"
+          max="20"
+          step="0.1"
+          value={frequency}
+          onChange={(e) => setFrequency(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Depth: {amplitude.toFixed(2)}</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={amplitude}
+          onChange={(e) => setAmplitude(Number(e.target.value))}
+        />
+      </div>
+
+      <ToneGenerator
+        output={toneOut}
+        frequency={440}
+        cv={lfoOut}
+        cvAmount={100}
+      />
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { LFO, LFOHandle, ToneGenerator, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const lfoRef = useRef<LFOHandle>(null);
+  const lfoOut = useRef(null);
+  const toneOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (lfoRef.current) {
+      lfoRef.current.setFrequency(2.0);
+      lfoRef.current.setAmplitude(1.0);
+      lfoRef.current.setWaveform('sine');
+
+      // Get current state
+      const state = lfoRef.current.getState();
+      console.log(state.frequency, state.amplitude, state.waveform);
+    }
+  }, []);
+
+  const createVibratoEffect = () => {
+    if (!lfoRef.current) return;
+
+    // Gradually increase vibrato depth
+    let depth = 0;
+    const interval = setInterval(() => {
+      if (depth < 1.0 && lfoRef.current) {
+        depth += 0.05;
+        lfoRef.current.setAmplitude(Math.min(1.0, depth));
+        lfoRef.current.setFrequency(5 + depth * 2); // Speed up as depth increases
+      } else {
+        clearInterval(interval);
+      }
+    }, 100);
+  };
+
+  return (
+    <>
+      <LFO ref={lfoRef} output={lfoOut} />
+      <ToneGenerator
+        output={toneOut}
+        frequency={440}
+        cv={lfoOut}
+        cvAmount={20}  // Vibrato of ±20Hz
+      />
+      <button onClick={createVibratoEffect}>Create Vibrato Effect</button>
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Frequency Range

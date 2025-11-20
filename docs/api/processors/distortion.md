@@ -241,6 +241,90 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage distortion state externally using controlled props:
+
+```tsx
+import { Distortion } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const distOut = useRef(null);
+  const [amount, setAmount] = useState(50);
+
+  return (
+    <>
+      <Distortion
+        input={inputRef}
+        output={distOut}
+        amount={amount}
+        onAmountChange={setAmount}
+      />
+
+      <div>
+        <label>Drive: {amount.toFixed(0)}</label>
+        <input
+          type="range"
+          min="0"
+          max="200"
+          step="1"
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+        />
+      </div>
+
+      {/* Quick preset buttons */}
+      <button onClick={() => setAmount(0)}>Clean</button>
+      <button onClick={() => setAmount(30)}>Warm</button>
+      <button onClick={() => setAmount(70)}>Crunch</button>
+      <button onClick={() => setAmount(120)}>Heavy</button>
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control distortion programmatically using refs:
+
+```tsx
+import { Distortion, DistortionHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const distOut = useRef(null);
+  const distRef = useRef<DistortionHandle>(null);
+
+  useEffect(() => {
+    if (distRef.current) {
+      // Gradually increase distortion
+      let amt = 0;
+      const interval = setInterval(() => {
+        amt += 5;
+        if (amt > 150) {
+          clearInterval(interval);
+        } else {
+          distRef.current?.setAmount(amt);
+        }
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  return (
+    <Distortion
+      ref={distRef}
+      input={inputRef}
+      output={distOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Distortion Amount

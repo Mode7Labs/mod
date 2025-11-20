@@ -209,6 +209,88 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+Manage panner state externally using controlled props:
+
+```tsx
+import { Panner } from '@mode-7/mod';
+import { useRef, useState } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const panOut = useRef(null);
+  const [pan, setPan] = useState(0);
+
+  return (
+    <>
+      <Panner
+        input={inputRef}
+        output={panOut}
+        pan={pan}
+        onPanChange={setPan}
+      />
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+        <button onClick={() => setPan(-1)}>Hard Left</button>
+        <button onClick={() => setPan(0)}>Center</button>
+        <button onClick={() => setPan(1)}>Hard Right</button>
+      </div>
+
+      <input
+        type="range"
+        min="-1"
+        max="1"
+        step="0.01"
+        value={pan}
+        onChange={(e) => setPan(Number(e.target.value))}
+      />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+Control panner programmatically using refs:
+
+```tsx
+import { Panner, PannerHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const inputRef = useRef(null);
+  const panOut = useRef(null);
+  const panRef = useRef<PannerHandle>(null);
+
+  useEffect(() => {
+    if (panRef.current) {
+      // Auto-pan left to right
+      let position = -1;
+      let direction = 1;
+
+      const interval = setInterval(() => {
+        position += direction * 0.05;
+        if (position >= 1 || position <= -1) {
+          direction *= -1;
+        }
+        panRef.current?.setPan(position);
+      }, 50);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  return (
+    <Panner
+      ref={panRef}
+      input={inputRef}
+      output={panOut}
+    />
+  );
+}
+```
+
 ## Important Notes
 
 ### Pan Values

@@ -207,29 +207,78 @@ function App() {
 }
 ```
 
-## Understanding the Pattern
+## Understanding the Patterns
 
-Every mod component follows the same pattern:
+mod components support three different usage patterns:
 
-1. **Import** the components you need
-2. **Create refs** for connecting modules
-3. **Pass refs** as `input` and `output` props
-4. **Use render props** to build your UI
+### 1. Render Props Pattern (shown above)
+
+Best for building interactive UIs where each module needs custom controls:
 
 ```tsx
-// 1. Import
-import { ToneGenerator } from '@mode-7/mod';
-
-// 2. Create ref
-const outputRef = useRef(null);
-
-// 3. Pass ref and 4. Use render props
 <ToneGenerator output={outputRef}>
-  {(controls) => (
-    <YourCustomUI {...controls} />
+  {({ frequency, setFrequency, gain, setGain }) => (
+    <YourCustomUI
+      frequency={frequency}
+      onFrequencyChange={setFrequency}
+      gain={gain}
+      onGainChange={setGain}
+    />
   )}
 </ToneGenerator>
 ```
+
+### 2. Controlled Props Pattern
+
+Ideal when you need external state management or want to control multiple modules from parent state:
+
+```tsx
+import { useState } from 'react';
+
+function App() {
+  const [frequency, setFrequency] = useState(440);
+  const [gain, setGain] = useState(0.5);
+
+  return (
+    <ToneGenerator
+      output={outputRef}
+      frequency={frequency}
+      onFrequencyChange={setFrequency}
+      gain={gain}
+      onGainChange={setGain}
+    />
+  );
+}
+```
+
+### 3. Imperative Refs Pattern
+
+Perfect for automation, sequencing, or when you need direct programmatic control:
+
+```tsx
+import { ToneGeneratorHandle } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const toneRef = useRef<ToneGeneratorHandle>(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (toneRef.current) {
+      toneRef.current.setFrequency(440);
+      toneRef.current.setGain(0.5);
+
+      // Get current state
+      const state = toneRef.current.getState();
+      console.log(state.frequency, state.gain);
+    }
+  }, []);
+
+  return <ToneGenerator ref={toneRef} output={outputRef} />;
+}
+```
+
+All three patterns can be mixed and matched in the same application.
 
 ## Next Steps
 

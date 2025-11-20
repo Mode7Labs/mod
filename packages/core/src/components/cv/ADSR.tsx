@@ -1,6 +1,18 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
+
+export interface ADSRHandle {
+  trigger: () => void;
+  releaseGate: () => void;
+  getState: () => {
+    attack: number;
+    decay: number;
+    sustain: number;
+    release: number;
+  };
+}
 
 export interface ADSRRenderProps {
   attack: number;
@@ -20,20 +32,38 @@ export interface ADSRProps {
   gate?: ModStreamRef; // Optional gate input to trigger envelope
   output: ModStreamRef;
   label?: string;
+  // Controlled props
+  attack?: number;
+  onAttackChange?: (attack: number) => void;
+  decay?: number;
+  onDecayChange?: (decay: number) => void;
+  sustain?: number;
+  onSustainChange?: (sustain: number) => void;
+  release?: number;
+  onReleaseChange?: (release: number) => void;
+  // Render props
   children?: (props: ADSRRenderProps) => ReactNode;
 }
 
-export const ADSR: React.FC<ADSRProps> = ({
+export const ADSR = React.forwardRef<ADSRHandle, ADSRProps>(({
   gate,
   output,
   label = 'adsr',
+  attack: controlledAttack,
+  onAttackChange,
+  decay: controlledDecay,
+  onDecayChange,
+  sustain: controlledSustain,
+  onSustainChange,
+  release: controlledRelease,
+  onReleaseChange,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [attack, setAttack] = useState(0.01); // Attack time in seconds
-  const [decay, setDecay] = useState(0.1); // Decay time in seconds
-  const [sustain, setSustain] = useState(0.7); // Sustain level (0-1)
-  const [release, setRelease] = useState(0.3); // Release time in seconds
+  const [attack, setAttack] = useControlledState(controlledAttack, 0.01, onAttackChange);
+  const [decay, setDecay] = useControlledState(controlledDecay, 0.1, onDecayChange);
+  const [sustain, setSustain] = useControlledState(controlledSustain, 0.7, onSustainChange);
+  const [release, setRelease] = useControlledState(controlledRelease, 0.3, onReleaseChange);
 
   const constantSourceRef = useRef<ConstantSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -232,6 +262,13 @@ export const ADSR: React.FC<ADSRProps> = ({
     }
   }, [gate, gate?.current, gate?.current?.audioNode, audioContext]);
 
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    trigger: triggerEnvelope.current,
+    releaseGate: releaseEnvelope.current,
+    getState: () => ({ attack, decay, sustain, release }),
+  }), [attack, decay, sustain, release]);
+
   // Render children with state
   if (children) {
     return <>{children({
@@ -250,4 +287,6 @@ export const ADSR: React.FC<ADSRProps> = ({
   }
 
   return null;
-};
+});
+
+ADSR.displayName = 'ADSR';

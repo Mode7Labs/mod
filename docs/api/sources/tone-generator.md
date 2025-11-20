@@ -125,6 +125,110 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the ToneGenerator from external state using controlled props:
+
+```tsx
+import { ToneGenerator, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const toneOut = useRef(null);
+  const [frequency, setFrequency] = useState(440);
+  const [gain, setGain] = useState(0.5);
+  const [waveform, setWaveform] = useState<OscillatorType>('sine');
+
+  return (
+    <>
+      <ToneGenerator
+        output={toneOut}
+        frequency={frequency}
+        onFrequencyChange={setFrequency}
+        gain={gain}
+        onGainChange={setGain}
+        waveform={waveform}
+        onWaveformChange={setWaveform}
+      />
+
+      <div>
+        <label>Frequency: {frequency}Hz</label>
+        <input
+          type="range"
+          min="20"
+          max="2000"
+          value={frequency}
+          onChange={(e) => setFrequency(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Waveform:</label>
+        <select value={waveform} onChange={(e) => setWaveform(e.target.value as OscillatorType)}>
+          <option value="sine">Sine</option>
+          <option value="square">Square</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="triangle">Triangle</option>
+        </select>
+      </div>
+
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { ToneGenerator, ToneGeneratorHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const toneRef = useRef<ToneGeneratorHandle>(null);
+  const toneOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (toneRef.current) {
+      toneRef.current.setFrequency(440);
+      toneRef.current.setGain(0.5);
+      toneRef.current.setWaveform('sine');
+
+      // Get current state
+      const state = toneRef.current.getState();
+      console.log(state.frequency, state.gain, state.waveform);
+    }
+  }, []);
+
+  const playMelody = () => {
+    if (!toneRef.current) return;
+
+    const notes = [440, 494, 523, 587, 659, 698, 784, 880];
+    let index = 0;
+
+    const interval = setInterval(() => {
+      if (index < notes.length && toneRef.current) {
+        toneRef.current.setFrequency(notes[index]);
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 300);
+  };
+
+  return (
+    <>
+      <ToneGenerator ref={toneRef} output={toneOut} />
+      <button onClick={playMelody}>Play Melody</button>
+      <Monitor input={toneOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 - The oscillator starts immediately when the component mounts

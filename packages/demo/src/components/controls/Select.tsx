@@ -10,8 +10,22 @@ interface SelectProps {
 }
 
 export const Select: React.FC<SelectProps> = ({ value, onValueChange, options, placeholder }) => {
+  // Filter out empty string values as Radix UI Select doesn't allow them
+  const validOptions = options.filter(option => option.value !== '');
+
+  // Ensure the current value exists in the options, otherwise use first valid option
+  // Never pass an empty string to Radix UI Select
+  const safeValue = validOptions.some(opt => opt.value === value)
+    ? value
+    : (validOptions[0]?.value || undefined);
+
+  // If no valid options or no valid value, don't render the select
+  if (!validOptions.length || !safeValue) {
+    return <div className="select-trigger" style={{ opacity: 0.5 }}>{placeholder || 'No options'}</div>;
+  }
+
   return (
-    <SelectPrimitive.Root value={value} onValueChange={onValueChange}>
+    <SelectPrimitive.Root value={safeValue} onValueChange={onValueChange}>
       <SelectPrimitive.Trigger className="select-trigger">
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon className="select-icon">
@@ -22,7 +36,7 @@ export const Select: React.FC<SelectProps> = ({ value, onValueChange, options, p
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content className="select-content">
           <SelectPrimitive.Viewport className="select-viewport">
-            {options.map((option) => (
+            {validOptions.map((option) => (
               <SelectPrimitive.Item key={option.value} value={option.value} className="select-item">
                 <SelectPrimitive.ItemIndicator className="select-item-indicator">
                   <Check size={14} />

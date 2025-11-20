@@ -1,8 +1,16 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, ReactNode, useImperativeHandle, useState } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
 
 export type CrossFadeMode = 'linear' | 'equal-power' | 'equal-gain' | 'exponential' | 'dj-cut' | 'smooth-step';
+
+export interface CrossFadeHandle {
+  getState: () => {
+    mix: number;
+    mode: CrossFadeMode;
+  };
+}
 
 export interface CrossFadeRenderProps {
   mix: number;
@@ -16,7 +24,12 @@ export interface CrossFadeProps {
   inputs: [ModStreamRef, ModStreamRef];
   output: ModStreamRef;
   label?: string;
+  // Controlled props
+  mix?: number;
+  onMixChange?: (mix: number) => void;
   mode?: CrossFadeMode;
+  onModeChange?: (mode: CrossFadeMode) => void;
+  // Render props
   children?: (props: CrossFadeRenderProps) => ReactNode;
 }
 
@@ -61,16 +74,19 @@ const calculateGains = (mix: number, mode: CrossFadeMode): [number, number] => {
   }
 };
 
-export const CrossFade: React.FC<CrossFadeProps> = ({
+export const CrossFade = React.forwardRef<CrossFadeHandle, CrossFadeProps>(({
   inputs,
   output,
   label = 'crossfade',
-  mode: initialMode = 'equal-power',
+  mix: controlledMix,
+  onMixChange,
+  mode: controlledMode,
+  onModeChange,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [mix, setMix] = useState(0.5);
-  const [mode, setMode] = useState<CrossFadeMode>(initialMode);
+  const [mix, setMix] = useControlledState(controlledMix, 0.5, onMixChange);
+  const [mode, setMode] = useControlledState<CrossFadeMode>(controlledMode, 'equal-power', onModeChange);
 
   const [inputA, inputB] = inputs;
 
@@ -79,8 +95,8 @@ export const CrossFade: React.FC<CrossFadeProps> = ({
   const gainBRef = useRef<GainNode | null>(null);
   const outputGainRef = useRef<GainNode | null>(null);
 
-  // Only recreate when specific input streams change, not just connection state
-  const inputsKey = inputs.map(i => i.current?.audioNode ? String(i.current.audioNode) : 'null').join(',');
+  // Track input nodes for dependency tracking
+  const [inputNodes, setInputNodes] = useState(inputs.map(i => i.current?.audioNode));
 
   // Create output gain once
   useEffect(() => {
@@ -133,13 +149,26 @@ export const CrossFade: React.FC<CrossFadeProps> = ({
 
   // Handle input connections separately
   useEffect(() => {
-    if (!inputA.current || !gainARef.current) return;
+    if (!gainARef.current || !gainBRef.current) return;
+
+    // Track changes to input nodes
+    const currentNodes = inputs.map(i => i.current?.audioNode);
+    if (JSON.stringify(currentNodes) !== JSON.stringify(inputNodes)) {
+      setInputNodes(currentNodes);
+    }
 
     // Connect input A to its gain
-    inputA.current.gain.connect(gainARef.current);
+    if (inputA.current) {
+      inputA.current.gain.connect(gainARef.current);
+    }
+
+    // Connect input B to its gain
+    if (inputB.current) {
+      inputB.current.gain.connect(gainBRef.current);
+    }
 
     return () => {
-      // Disconnect when input changes
+      // Disconnect when inputs change
       if (inputA.current && gainARef.current) {
         try {
           inputA.current.gain.disconnect(gainARef.current);
@@ -147,17 +176,6 @@ export const CrossFade: React.FC<CrossFadeProps> = ({
           // Already disconnected
         }
       }
-    };
-  }, [inputsKey, inputA]);
-
-  useEffect(() => {
-    if (!inputB.current || !gainBRef.current) return;
-
-    // Connect input B to its gain
-    inputB.current.gain.connect(gainBRef.current);
-
-    return () => {
-      // Disconnect when input changes
       if (inputB.current && gainBRef.current) {
         try {
           inputB.current.gain.disconnect(gainBRef.current);
@@ -166,7 +184,7 @@ export const CrossFade: React.FC<CrossFadeProps> = ({
         }
       }
     };
-  }, [inputsKey, inputB]);
+  }, [inputNodes, inputA, inputB]);
 
   // Update mix and mode when they change
   useEffect(() => {
@@ -177,6 +195,11 @@ export const CrossFade: React.FC<CrossFadeProps> = ({
       stream._gainB.gain.value = gainBValue;
     }
   }, [mix, mode, output]);
+
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    getState: () => ({ mix, mode }),
+  }), [mix, mode]);
 
   // Render children with state
   if (children) {
@@ -190,4 +213,6 @@ export const CrossFade: React.FC<CrossFadeProps> = ({
   }
 
   return null;
-};
+});
+
+CrossFade.displayName = 'CrossFade';

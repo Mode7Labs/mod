@@ -190,6 +190,119 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the Reverb from external state using controlled props:
+
+```tsx
+import { ToneGenerator, Reverb, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const toneOut = useRef(null);
+  const reverbOut = useRef(null);
+  const [wet, setWet] = useState(0.3);
+  const [duration, setDuration] = useState(1.5);
+  const [decay, setDecay] = useState(2.5);
+
+  return (
+    <>
+      <ToneGenerator output={toneOut} />
+      <Reverb
+        input={toneOut}
+        output={reverbOut}
+        wet={wet}
+        onWetChange={setWet}
+        duration={duration}
+        onDurationChange={setDuration}
+        decay={decay}
+        onDecayChange={setDecay}
+      />
+
+      <div>
+        <label>Mix: {(wet * 100).toFixed(0)}%</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={wet}
+          onChange={(e) => setWet(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Duration: {duration.toFixed(1)}s</label>
+        <input
+          type="range"
+          min="0.1"
+          max="5"
+          step="0.1"
+          value={duration}
+          onChange={(e) => setDuration(Number(e.target.value))}
+        />
+      </div>
+
+      <Monitor input={reverbOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { ToneGenerator, Reverb, ReverbHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const reverbRef = useRef<ReverbHandle>(null);
+  const toneOut = useRef(null);
+  const reverbOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (reverbRef.current) {
+      reverbRef.current.setWet(0.3);
+      reverbRef.current.setDuration(1.5);
+      reverbRef.current.setDecay(2.5);
+
+      // Get current state
+      const state = reverbRef.current.getState();
+      console.log(state.wet, state.duration, state.decay);
+    }
+  }, []);
+
+  const loadPreset = (preset: 'room' | 'hall' | 'cathedral') => {
+    if (!reverbRef.current) return;
+
+    const presets = {
+      room: { duration: 0.5, decay: 2, wet: 0.2 },
+      hall: { duration: 2.0, decay: 3, wet: 0.4 },
+      cathedral: { duration: 4.0, decay: 4, wet: 0.5 },
+    };
+
+    const settings = presets[preset];
+    reverbRef.current.setDuration(settings.duration);
+    reverbRef.current.setDecay(settings.decay);
+    reverbRef.current.setWet(settings.wet);
+  };
+
+  return (
+    <>
+      <ToneGenerator output={toneOut} />
+      <Reverb ref={reverbRef} input={toneOut} output={reverbOut} />
+      <button onClick={() => loadPreset('room')}>Room</button>
+      <button onClick={() => loadPreset('hall')}>Hall</button>
+      <button onClick={() => loadPreset('cathedral')}>Cathedral</button>
+      <Monitor input={reverbOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Duration

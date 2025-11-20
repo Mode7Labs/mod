@@ -1,8 +1,17 @@
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, ReactNode, useImperativeHandle } from 'react';
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
+import { useControlledState } from '../../hooks/useControlledState';
 
 export type LFOWaveform = 'sine' | 'square' | 'sawtooth' | 'triangle';
+
+export interface LFOHandle {
+  getState: () => {
+    frequency: number;
+    amplitude: number;
+    waveform: LFOWaveform;
+  };
+}
 
 export interface LFORenderProps {
   frequency: number;
@@ -17,18 +26,32 @@ export interface LFORenderProps {
 export interface LFOProps {
   output: ModStreamRef;
   label?: string;
+  // Controlled props
+  frequency?: number;
+  onFrequencyChange?: (frequency: number) => void;
+  amplitude?: number;
+  onAmplitudeChange?: (amplitude: number) => void;
+  waveform?: LFOWaveform;
+  onWaveformChange?: (waveform: LFOWaveform) => void;
+  // Render props
   children?: (props: LFORenderProps) => ReactNode;
 }
 
-export const LFO: React.FC<LFOProps> = ({
+export const LFO = React.forwardRef<LFOHandle, LFOProps>(({
   output,
   label = 'lfo',
+  frequency: controlledFrequency,
+  onFrequencyChange,
+  amplitude: controlledAmplitude,
+  onAmplitudeChange,
+  waveform: controlledWaveform,
+  onWaveformChange,
   children,
-}) => {
+}, ref) => {
   const audioContext = useAudioContext();
-  const [frequency, setFrequency] = useState(1); // LFO frequency in Hz (0.1 - 20 Hz)
-  const [amplitude, setAmplitude] = useState(1); // Amplitude (0-1)
-  const [waveform, setWaveform] = useState<LFOWaveform>('sine');
+  const [frequency, setFrequency] = useControlledState(controlledFrequency, 1, onFrequencyChange);
+  const [amplitude, setAmplitude] = useControlledState(controlledAmplitude, 1, onAmplitudeChange);
+  const [waveform, setWaveform] = useControlledState<LFOWaveform>(controlledWaveform, 'sine', onWaveformChange);
 
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -97,6 +120,11 @@ export const LFO: React.FC<LFOProps> = ({
     }
   }, [waveform]);
 
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    getState: () => ({ frequency, amplitude, waveform }),
+  }), [frequency, amplitude, waveform]);
+
   // Render children with state
   if (children) {
     return <>{children({
@@ -111,4 +139,6 @@ export const LFO: React.FC<LFOProps> = ({
   }
 
   return null;
-};
+});
+
+LFO.displayName = 'LFO';

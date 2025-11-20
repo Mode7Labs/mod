@@ -116,6 +116,106 @@ function App() {
 }
 ```
 
+### Controlled Props
+
+You can control the NoiseGenerator from external state using controlled props:
+
+```tsx
+import { NoiseGenerator, Monitor } from '@mode-7/mod';
+import { useState, useRef } from 'react';
+
+function App() {
+  const noiseOut = useRef(null);
+  const [gain, setGain] = useState(0.3);
+  const [type, setType] = useState<NoiseType>('white');
+
+  return (
+    <>
+      <NoiseGenerator
+        output={noiseOut}
+        gain={gain}
+        onGainChange={setGain}
+        type={type}
+        onTypeChange={setType}
+      />
+
+      <div>
+        <label>Gain: {gain.toFixed(2)}</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={gain}
+          onChange={(e) => setGain(Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label>Noise Type:</label>
+        <select value={type} onChange={(e) => setType(e.target.value as NoiseType)}>
+          <option value="white">White Noise</option>
+          <option value="pink">Pink Noise</option>
+        </select>
+      </div>
+
+      <Monitor input={noiseOut} />
+    </>
+  );
+}
+```
+
+### Imperative Refs
+
+For programmatic control, you can use refs to access methods directly:
+
+```tsx
+import { NoiseGenerator, NoiseGeneratorHandle, Monitor } from '@mode-7/mod';
+import { useRef, useEffect } from 'react';
+
+function App() {
+  const noiseRef = useRef<NoiseGeneratorHandle>(null);
+  const noiseOut = useRef(null);
+
+  useEffect(() => {
+    // Direct programmatic control
+    if (noiseRef.current) {
+      noiseRef.current.setGain(0.3);
+      noiseRef.current.setType('pink');
+
+      // Get current state
+      const state = noiseRef.current.getState();
+      console.log(state.gain, state.type);
+    }
+  }, []);
+
+  const createWindEffect = () => {
+    if (!noiseRef.current) return;
+
+    noiseRef.current.setType('pink');
+
+    // Fade in wind effect
+    let gain = 0;
+    const interval = setInterval(() => {
+      if (gain < 0.6 && noiseRef.current) {
+        gain += 0.02;
+        noiseRef.current.setGain(gain);
+      } else {
+        clearInterval(interval);
+      }
+    }, 50);
+  };
+
+  return (
+    <>
+      <NoiseGenerator ref={noiseRef} output={noiseOut} />
+      <button onClick={createWindEffect}>Create Wind Effect</button>
+      <Monitor input={noiseOut} />
+    </>
+  );
+}
+```
+
 ## Important Notes
 
 ### Noise Types

@@ -40,7 +40,7 @@ export const Monitor: React.FC<MonitorProps> = ({
 
   const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Only recreate when specific input stream changes, not ref
+  // Only recreate when specific input stream changes, not refs
   const inputKey = input.current?.audioNode ? String(input.current.audioNode) : 'null';
 
   // Get available audio output devices
@@ -117,6 +117,9 @@ export const Monitor: React.FC<MonitorProps> = ({
       try {
         await (audioContext as any).setSinkId(deviceId);
         console.log('Selected output device:', deviceId);
+
+        // Refresh devices after changing to ensure we have updated labels
+        await refreshDevices();
       } catch (err) {
         console.error('Failed to set output device:', err);
       }
