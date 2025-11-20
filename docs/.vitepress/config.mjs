@@ -95,7 +95,16 @@ export default defineConfig({
             { text: 'Compressor', link: '/api/processors/compressor' },
             { text: 'Distortion', link: '/api/processors/distortion' },
             { text: 'Panner', link: '/api/processors/panner' },
-            { text: 'EQ', link: '/api/processors/eq' }
+            { text: 'EQ', link: '/api/processors/eq' },
+            { text: 'Chorus', link: '/api/processors/chorus' },
+            { text: 'Phaser', link: '/api/processors/phaser' },
+            { text: 'Flanger', link: '/api/processors/flanger' },
+            { text: 'Tremolo', link: '/api/processors/tremolo' },
+            { text: 'BitCrusher', link: '/api/processors/bitcrusher' },
+            { text: 'Limiter', link: '/api/processors/limiter' },
+            { text: 'Gate', link: '/api/processors/gate' },
+            { text: 'AutoWah', link: '/api/processors/autowah' },
+            { text: 'RingModulator', link: '/api/processors/ringmodulator' }
           ]
         },
         {
@@ -109,6 +118,14 @@ export default defineConfig({
           text: 'Output',
           items: [
             { text: 'Monitor', link: '/api/output/monitor' }
+          ]
+        },
+        {
+          text: 'Visualizations',
+          items: [
+            { text: 'Oscilloscope', link: '/api/visualizations/oscilloscope' },
+            { text: 'SpectrumAnalyzer', link: '/api/visualizations/spectrum-analyzer' },
+            { text: 'LevelMeter', link: '/api/visualizations/level-meter' }
           ]
         }
       ]
