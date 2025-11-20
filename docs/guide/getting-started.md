@@ -282,6 +282,6 @@ All three patterns can be mixed and matched in the same application.
 
 ## Next Steps
 
-- Learn about [CV Modulation](/guide/cv-modulation) to create dynamic, evolving sounds
 - Explore the [API Reference](/api/overview) for all available modules
-- Check out more [Examples](/guide/examples/simple-synth)
+- Try the interactive [Playground](/playground/index.html) to experiment with different module combinations
+- Read about [AudioProvider](/api/audio-provider) to understand the audio context

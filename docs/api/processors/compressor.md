@@ -417,6 +417,6 @@ function App() {
 
 ## Related
 
-- [Limiter](/api/processors/limiter) - Extreme compression for preventing clipping
+- [Distortion](/api/processors/distortion) - Add harmonics and saturation
 - [EQ](/api/processors/eq) - Shape frequency balance
 - [Monitor](/api/output/monitor) - Control output levels

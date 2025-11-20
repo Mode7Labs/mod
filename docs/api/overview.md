@@ -118,4 +118,4 @@ import type {
 
 ## Next Steps
 
-Explore the detailed API documentation for each component, or jump straight to the [examples](/guide/examples/simple-synth).
+Explore the detailed API documentation for each component, or check out the [Getting Started Guide](/guide/getting-started) to start building.

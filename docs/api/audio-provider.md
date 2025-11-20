@@ -124,5 +124,5 @@ function App() {
 
 ## Related
 
-- [useAudioContext](/api/hooks/use-audio-context) - Hook to access the audio context
-- [Architecture](/guide/architecture) - Learn about mod's architecture
+- [Getting Started](/guide/getting-started) - Start building with mod
+- [API Overview](/api/overview) - Explore all available components
