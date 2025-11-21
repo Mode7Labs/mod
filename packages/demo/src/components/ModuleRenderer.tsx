@@ -70,8 +70,6 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
 }) => {
   const input = inputStreams[0];
   const input2 = inputStreams[1];
-  const input3 = inputStreams[2];
-  const input4 = inputStreams[3];
   const output = outputStreams[0];
 
   // Get CV input (just get the first one since each component only has one CV port)
@@ -956,7 +954,6 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
                     max={1}
                     step={0.01}
                     formatValue={(v) => v.toFixed(2)}
-                    labelColor={i === controls.currentStep ? '#4CAF50' : undefined}
                   />
                 ))}
               </div>

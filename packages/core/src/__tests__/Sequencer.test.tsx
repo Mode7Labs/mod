@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
 import { Sequencer, SequencerHandle } from '../components/cv/Sequencer';
@@ -9,13 +9,12 @@ describe('Sequencer', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
         <Sequencer output={output}>
-          {({ steps, currentStep, bpm, isPlaying, numSteps }) => (
+          {({ steps, currentStep, bpm, isPlaying }) => (
             <div>
               <span>Steps: {steps.length}</span>
               <span>Current Step: {currentStep}</span>
               <span>BPM: {bpm}</span>
               <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
-              <span>Num Steps: {numSteps ?? 'undefined'}</span>
             </div>
           )}
         </Sequencer>

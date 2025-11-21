@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
 import { Clock, ClockHandle } from '../components/cv/Clock';

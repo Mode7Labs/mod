@@ -1,6 +1,4 @@
-import React from 'react';
 import { render, createMockStreamRef } from './test-utils';
-import { waitFor } from '@testing-library/react';
 import { SpectrumAnalyzer } from '../components/visualizations/SpectrumAnalyzer';
 
 describe('SpectrumAnalyzer', () => {

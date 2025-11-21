@@ -1,7 +1,6 @@
-import React, { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
-import { Monitor, MonitorRenderProps } from '../components/output/Monitor';
+import { Monitor } from '../components/output/Monitor';
 import { ModStreamRef } from '../types/ModStream';
 
 // Helper to create a mock input stream ref with audio nodes
@@ -277,12 +276,9 @@ describe('Monitor', () => {
     it('should allow device selection through selectDevice', async () => {
       const input = createMockInputRef();
 
-      let selectDeviceFn: ((deviceId: string) => Promise<void>) | null = null;
-
       const { getByRole, getByText } = render(
         <Monitor input={input}>
           {({ selectedDeviceId, selectDevice }) => {
-            selectDeviceFn = selectDevice;
             return (
               <div>
                 <span>Selected: {selectedDeviceId || 'none'}</span>

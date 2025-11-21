@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, createMockStreamRef } from './test-utils';
 import { LevelMeter } from '../components/visualizations/LevelMeter';
 

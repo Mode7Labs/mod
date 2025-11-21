@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
 import { Microphone, MicrophoneHandle, AudioDevice } from '../components/sources/Microphone';
@@ -124,7 +124,7 @@ describe('Microphone', () => {
       const output = createMockStreamRef();
       const { getByText, getByRole } = render(
         <Microphone output={output}>
-          {({ selectedDeviceId, selectDevice, devices }) => (
+          {({ selectedDeviceId, selectDevice }) => (
             <div>
               <span>Selected: {selectedDeviceId}</span>
               <button onClick={() => selectDevice('device-2')}>

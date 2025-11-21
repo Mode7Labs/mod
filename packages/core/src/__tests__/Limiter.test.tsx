@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
 import { Limiter, LimiterHandle } from '../components/processors/Limiter';
@@ -447,7 +447,7 @@ describe('Limiter', () => {
     it('should maintain threshold and release independence', async () => {
       const input = createMockStreamRef();
       const output = createMockStreamRef();
-      const { getByText, getByRole, getAllByRole } = render(
+      const { getByText, getAllByRole } = render(
         <Limiter input={input} output={output}>
           {({ threshold, release, setThreshold, setRelease }) => (
             <div>

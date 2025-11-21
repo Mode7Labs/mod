@@ -1,6 +1,4 @@
-import React from 'react';
 import { render, createMockStreamRef } from './test-utils';
-import { waitFor } from '@testing-library/react';
 import { Oscilloscope } from '../components/visualizations/Oscilloscope';
 
 describe('Oscilloscope', () => {

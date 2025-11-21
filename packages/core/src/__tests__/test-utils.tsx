@@ -17,7 +17,7 @@ export function renderWithAudio(
 
 // Helper to create a mock ModStreamRef
 export function createMockStreamRef() {
-  return { current: null };
+  return { current: null as any };
 }
 
 // Helper to wait for audio context to be ready

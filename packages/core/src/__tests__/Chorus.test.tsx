@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
 import { Chorus, ChorusHandle } from '../components/processors/Chorus';
@@ -589,12 +589,6 @@ describe('Chorus', () => {
 
       const chorusNode = output.current?.audioNode;
       const gain = output.current?.gain;
-      const stream = output.current as any;
-      const dryGain = stream?._dryGain;
-      const wetGain = stream?._wetGain;
-      const delayNode = stream?._delayNode;
-      const lfo = stream?._lfo;
-      const lfoGain = stream?._lfoGain;
 
       expect(chorusNode).toBeDefined();
       expect(gain).toBeDefined();
