@@ -24,6 +24,7 @@ guide/
 ├── output.md              # Monitor and audio output
 └── examples/              # Complete working examples
     ├── simple-synth.md    # Full synthesizer
+    ├── simple-sampler.md  # Drum machine and sampler
     ├── lfo-modulation.md  # Vibrato and tremolo
     └── rhythmic-patterns.md # Sequencer-based patterns
 ```

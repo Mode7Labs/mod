@@ -12,12 +12,13 @@ API reference documentation for all MOD components. Each component has its own m
 api/
 ├── overview.md           # API landing page
 ├── audio-provider.md     # AudioProvider context
-├── sources/              # 5 audio source components
+├── sources/              # 6 audio source components
 │   ├── tone-generator.md
 │   ├── noise-generator.md
 │   ├── microphone.md
 │   ├── mp3-deck.md
-│   └── streaming-audio-deck.md
+│   ├── streaming-audio-deck.md
+│   └── sampler.md
 ├── cv/                   # 4 control voltage generators
 │   ├── lfo.md
 │   ├── adsr.md

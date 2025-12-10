@@ -52,7 +52,7 @@ npm run docs:build       # Build documentation
 ```
 src/
 ├── components/
-│   ├── sources/        # 5: ToneGenerator, NoiseGenerator, Microphone, MP3Deck, StreamingAudioDeck
+│   ├── sources/        # 6: ToneGenerator, NoiseGenerator, Microphone, MP3Deck, StreamingAudioDeck, Sampler
 │   ├── processors/     # 17: Filter, Delay, Reverb, Compressor, Distortion, EQ, VCA, etc.
 │   ├── cv/             # 4: LFO, ADSR, Sequencer, Clock
 │   ├── mixers/         # 2: Mixer (4-ch), CrossFade

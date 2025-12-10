@@ -44,7 +44,8 @@ src/
 │   │   ├── NoiseGenerator.tsx
 │   │   ├── Microphone.tsx
 │   │   ├── MP3Deck.tsx
-│   │   └── StreamingAudioDeck.tsx
+│   │   ├── StreamingAudioDeck.tsx
+│   │   └── Sampler.tsx
 │   ├── cv/               # Control voltage generators
 │   │   ├── LFO.tsx
 │   │   ├── ADSR.tsx
