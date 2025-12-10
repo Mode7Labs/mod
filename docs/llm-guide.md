@@ -48,6 +48,7 @@ Generate or input audio signals. Have `output` prop only.
 | [Microphone](/api/sources/microphone) | Mic input | gain |
 | [MP3Deck](/api/sources/mp3-deck) | Audio files | src, loop, gain |
 | [StreamingAudioDeck](/api/sources/streaming-audio-deck) | Streaming audio | url, loop, gain |
+| [Sampler](/api/sources/sampler) | Sample playback | polyphony, velocity, MIDI notes, gate |
 
 ### CV Generators (Modulation)
 Generate control voltage signals. Have `output` prop, connect to `cvInput` of processors.
@@ -1062,6 +1063,84 @@ const audio = useModStream();
     </div>
   )}
 </MP3Deck>
+```
+
+### Sampler - Polyphonic Sample Playback
+
+Plays audio samples with polyphony, velocity, and MIDI note support. Uses AudioBufferSourceNode for low-latency triggering.
+
+**Props:**
+- `output: ModStreamRef` (required) - Output stream
+- `src: string` - Sample URL to load
+- `playbackRate: number` - Playback speed (default: 1.0)
+- `detune: number` - Pitch adjustment in cents (default: 0)
+- `gain: number` - Output volume 0-1+ (default: 1)
+- `loop: boolean` - Loop playback (default: false)
+- `loopStart: number` - Loop start in seconds (default: 0)
+- `loopEnd: number` - Loop end in seconds (default: 0 = end)
+- `maxPolyphony: number` - Max simultaneous voices (default: 8)
+- `voiceStealingMode: 'oldest' | 'quietest' | 'none'` - How to handle overflow (default: 'oldest')
+- `gate: ModStreamRef` - Gate input for automatic triggering
+- `gateMode: 'gate' | 'trigger'` - Gate behavior (default: 'trigger')
+- `rootNote: number` - MIDI note for original pitch (default: 60)
+- `cv: ModStreamRef` - CV modulation input
+- `cvAmount: number` - Modulation depth (default: 0.5)
+- `cvTarget: 'playbackRate' | 'detune'` - Modulation target (default: 'playbackRate')
+
+**Render Props:**
+```tsx
+{({
+  isLoaded, isLoading, error, duration, isPlaying, activeVoices, maxPolyphony,
+  trigger, triggerNote, stop, stopAll, loadFile, loadUrl,
+  playbackRate, setPlaybackRate, detune, setDetune, gain, setGain,
+  loop, setLoop, loopStart, setLoopStart, loopEnd, setLoopEnd
+}) => ReactNode}
+```
+
+**Trigger Options:**
+```tsx
+trigger({ velocity: 0.8, startOffset: 0.5, playbackRate: 1.5 });
+triggerNote(60);  // Trigger at MIDI note 60 (middle C)
+triggerNote(72, { velocity: 0.7 });  // Trigger at C5 with velocity
+```
+
+**Example - Drum Pad:**
+```tsx
+const output = useModStream();
+
+<Sampler output={output} src="/samples/kick.wav">
+  {({ trigger, isLoaded, activeVoices }) => (
+    <button onClick={() => trigger()} disabled={!isLoaded}>
+      Kick ({activeVoices}/8)
+    </button>
+  )}
+</Sampler>
+```
+
+**Example - MIDI Keyboard:**
+```tsx
+const output = useModStream();
+
+<Sampler output={output} src="/samples/piano.wav" rootNote={60}>
+  {({ triggerNote, stopAll, isLoaded }) => (
+    <div>
+      {[60, 62, 64, 65, 67, 69, 71, 72].map(note => (
+        <button key={note} onClick={() => triggerNote(note)} disabled={!isLoaded}>
+          {note}
+        </button>
+      ))}
+      <button onClick={stopAll}>Stop All</button>
+    </div>
+  )}
+</Sampler>
+```
+
+**Helper Function:**
+```tsx
+import { midiNoteToPlaybackRate } from '@mode-7/mod';
+
+const rate = midiNoteToPlaybackRate(72);        // 2.0 (octave up from 60)
+const rate = midiNoteToPlaybackRate(48, 60);    // 0.5 (octave down)
 ```
 
 ### VCA - Voltage Controlled Amplifier

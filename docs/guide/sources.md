@@ -61,8 +61,8 @@ Plays audio files from the user's computer.
 ### StreamingAudioDeck
 Streams audio from URLs.
 
-**Use for**: Internet radio, streaming services, remote audio  
-**Formats**: Any streamable audio format  
+**Use for**: Internet radio, streaming services, remote audio
+**Formats**: Any streamable audio format
 **API**: [StreamingAudioDeck](/api/sources/streaming-audio-deck)
 
 ```tsx
@@ -74,6 +74,29 @@ Streams audio from URLs.
     </div>
   )}
 </StreamingAudioDeck>
+```
+
+### Sampler
+
+Polyphonic sample playback with velocity, MIDI notes, and CV modulation.
+
+**Use for**: Drum machines, samplers, sound effects, keyboard instruments
+**Formats**: WAV, MP3, OGG, AAC (any format supported by `decodeAudioData`)
+**API**: [Sampler](/api/sources/sampler)
+
+```tsx
+<Sampler output={ref} src="/samples/kick.wav" maxPolyphony={8}>
+  {({ trigger, triggerNote, isLoaded, activeVoices }) => (
+    <div>
+      <button onClick={() => trigger()} disabled={!isLoaded}>
+        Trigger ({activeVoices}/8)
+      </button>
+      <button onClick={() => triggerNote(60)}>C4</button>
+      <button onClick={() => triggerNote(64)}>E4</button>
+      <button onClick={() => triggerNote(67)}>G4</button>
+    </div>
+  )}
+</Sampler>
 ```
 
 ## Common Patterns
@@ -115,3 +138,4 @@ const processed = useModStream();
 - Explore [CV Generators](/guide/cv-generators)
 - Learn about [Processors](/guide/processors)
 - Build a [simple synthesizer](/guide/examples/simple-synth)
+- Build a [drum machine and sampler](/guide/examples/simple-sampler)

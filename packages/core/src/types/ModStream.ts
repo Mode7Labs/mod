@@ -6,7 +6,7 @@ export interface ModStream {
   context: AudioContext;
   metadata: {
     label?: string;
-    sourceType?: 'microphone' | 'mp3' | 'stream' | 'tone' | 'processor' | 'mixer' | 'cv';
+    sourceType?: 'microphone' | 'mp3' | 'stream' | 'tone' | 'sampler' | 'processor' | 'mixer' | 'cv';
   };
 }
 

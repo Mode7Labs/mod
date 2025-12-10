@@ -96,15 +96,30 @@ class MockAudioContext {
   }
 
   createBufferSource(): AudioBufferSourceNode {
-    return {
+    const source = {
       connect: jest.fn(),
       disconnect: jest.fn(),
       start: jest.fn(),
       stop: jest.fn(),
       buffer: null,
       loop: false,
-      playbackRate: { value: 1, setValueAtTime: jest.fn() },
-    } as unknown as AudioBufferSourceNode;
+      loopStart: 0,
+      loopEnd: 0,
+      playbackRate: {
+        value: 1,
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+        exponentialRampToValueAtTime: jest.fn(),
+      },
+      detune: {
+        value: 0,
+        setValueAtTime: jest.fn(),
+        linearRampToValueAtTime: jest.fn(),
+        exponentialRampToValueAtTime: jest.fn(),
+      },
+      onended: null as ((this: AudioBufferSourceNode, ev: Event) => any) | null,
+    };
+    return source as unknown as AudioBufferSourceNode;
   }
 
   createBuffer(numberOfChannels: number, length: number, sampleRate: number): AudioBuffer {

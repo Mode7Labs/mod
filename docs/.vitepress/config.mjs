@@ -4,6 +4,7 @@ export default defineConfig({
   title: 'MOD',
   description: 'Modular Web Audio components for React',
   base: '/mod/',
+  srcExclude: ['**/CLAUDE.md'],
 
   head: [
     ['link', { rel: 'icon', href: '/logo.png' }],
@@ -55,6 +56,7 @@ export default defineConfig({
           text: 'Examples',
           items: [
             { text: 'Simple Synthesizer', link: '/guide/examples/simple-synth' },
+            { text: 'Simple Sampler', link: '/guide/examples/simple-sampler' },
             { text: 'LFO Modulation', link: '/guide/examples/lfo-modulation' },
             { text: 'Rhythmic Patterns', link: '/guide/examples/rhythmic-patterns' }
           ]
@@ -75,7 +77,8 @@ export default defineConfig({
             { text: 'NoiseGenerator', link: '/api/sources/noise-generator' },
             { text: 'Microphone', link: '/api/sources/microphone' },
             { text: 'MP3Deck', link: '/api/sources/mp3-deck' },
-            { text: 'StreamingAudioDeck', link: '/api/sources/streaming-audio-deck' }
+            { text: 'StreamingAudioDeck', link: '/api/sources/streaming-audio-deck' },
+            { text: 'Sampler', link: '/api/sources/sampler' }
           ]
         },
         {

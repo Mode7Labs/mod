@@ -124,6 +124,8 @@ function ModularSynth() {
       ports.push({ id: `${id}-cv-gain`, type: 'input', label: 'CV' });
     } else if (type === 'ADSR') {
       ports.push({ id: `${id}-cv-gate`, type: 'input', label: 'Gate' });
+    } else if (type === 'Sampler') {
+      ports.push({ id: `${id}-cv-gate`, type: 'input', label: 'Gate' });
     }
 
     // Create output ports based on definition

@@ -24,6 +24,17 @@ export type { ToneGeneratorProps, ToneGeneratorRenderProps, OscillatorType } fro
 export { NoiseGenerator } from './components/sources/NoiseGenerator';
 export type { NoiseGeneratorProps, NoiseGeneratorRenderProps, NoiseType } from './components/sources/NoiseGenerator';
 
+export { Sampler, midiNoteToPlaybackRate } from './components/sources/Sampler';
+export type {
+  SamplerProps,
+  SamplerRenderProps,
+  SamplerHandle,
+  SamplerState,
+  TriggerOptions,
+  VoiceStealingMode,
+  GateMode,
+} from './components/sources/Sampler';
+
 // CV Components
 export { LFO } from './components/cv/LFO';
 export type { LFOProps, LFORenderProps, LFOWaveform } from './components/cv/LFO';

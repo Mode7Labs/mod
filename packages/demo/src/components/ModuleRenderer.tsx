@@ -6,6 +6,7 @@ import {
   Microphone,
   MP3Deck,
   StreamingAudioDeck,
+  Sampler,
   // CV
   LFO,
   ADSR,
@@ -1158,6 +1159,67 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
             );
           }}
         </StreamingAudioDeck>
+      ) : null;
+
+    case 'Sampler':
+      return output ? (
+        <Sampler output={output} gate={cv} enabled={enabled}>
+          {(controls) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <ModUIFilePicker
+                onFileSelect={(file) => controls.loadFile(file)}
+                accept="audio/*"
+                label="Load Sample"
+                icon={<Upload size={14} />}
+              />
+              <ModUISlider
+                label="Gain"
+                value={controls.gain}
+                onChange={controls.setGain}
+                min={0}
+                max={2}
+                step={0.01}
+                formatValue={(v) => v.toFixed(2)}
+              />
+              <ModUISlider
+                label="Playback Rate"
+                value={controls.playbackRate}
+                onChange={controls.setPlaybackRate}
+                min={0.25}
+                max={4}
+                step={0.01}
+                formatValue={(v) => `${v.toFixed(2)}x`}
+              />
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <ModUIButton
+                  icon={<Zap size={16} />}
+                  onClick={() => controls.trigger()}
+                  variant="success"
+                  title="Trigger"
+                  disabled={!controls.isLoaded}
+                />
+                <ModUIButton
+                  icon={<Square size={16} />}
+                  onClick={() => controls.stopAll()}
+                  title="Stop All"
+                  disabled={!controls.isPlaying}
+                />
+                <ModUIButton
+                  icon={<Repeat size={16} />}
+                  active={controls.loop}
+                  onClick={() => controls.setLoop(!controls.loop)}
+                  title="Loop"
+                />
+              </div>
+              <div style={{ fontSize: '10px', color: '#888', textAlign: 'center' }}>
+                {controls.isLoading ? 'Loading...' :
+                 controls.error ? `Error: ${controls.error}` :
+                 controls.isLoaded ? `${controls.duration.toFixed(2)}s | Voices: ${controls.activeVoices}/${controls.maxPolyphony}` :
+                 'No sample loaded'}
+              </div>
+            </div>
+          )}
+        </Sampler>
       ) : null;
 
     case 'Oscilloscope':

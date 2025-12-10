@@ -46,6 +46,15 @@ export const MODULE_DEFINITIONS: Record<string, ModuleDefinition> = {
     outputs: 1,
     defaultParams: { url: '', gain: 1.0, isPlaying: false },
   },
+  Sampler: {
+    type: 'Sampler',
+    label: 'Sampler',
+    category: 'source',
+    color: '#f093fb',
+    inputs: 0,
+    outputs: 1,
+    defaultParams: { src: '', playbackRate: 1.0, gain: 1.0, loop: false, maxPolyphony: 8 },
+  },
   LFO: {
     type: 'LFO',
     label: 'LFO',
