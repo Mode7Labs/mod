@@ -36,3 +36,6 @@ LAUNCH_CHECKLIST.md
 
 # Test apps
 test-apps/
+
+# Playground build artifacts (copied from demo build)
+docs/public/playground/
