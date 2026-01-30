@@ -95,6 +95,7 @@ export default defineConfig({
             { text: 'Reverb', link: '/api/processors/reverb' },
             { text: 'Compressor', link: '/api/processors/compressor' },
             { text: 'Distortion', link: '/api/processors/distortion' },
+            { text: 'DiodeFilter', link: '/api/processors/diode-filter' },
             { text: 'Panner', link: '/api/processors/panner' },
             { text: 'EQ', link: '/api/processors/eq' },
             { text: 'Chorus', link: '/api/processors/chorus' },

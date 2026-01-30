@@ -36,4 +36,4 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for gu
 
 ## Contributors
 
-<!-- Add contributors here as the project grows -->
+- **Zack Hagan** ([@zhagan](https://github.com/zhagan)) - Clock worklet, DiodeFilter, Slider log scale

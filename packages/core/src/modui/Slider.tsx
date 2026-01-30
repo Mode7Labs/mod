@@ -1,12 +1,15 @@
 import React from 'react';
 import './Slider.css';
 
+export type SliderScale = 'linear' | 'log';
+
 export interface SliderProps {
   value: number;
   onChange: (value: number) => void;
   min?: number;
   max?: number;
   step?: number;
+  scale?: SliderScale;
   label?: string;
   unit?: string;
   formatValue?: (value: number) => string;
@@ -26,6 +29,7 @@ export const Slider: React.FC<SliderProps> = ({
   min = 0,
   max = 100,
   step = 1,
+  scale = 'linear',
   label,
   unit = '',
   formatValue,
@@ -38,23 +42,34 @@ export const Slider: React.FC<SliderProps> = ({
   buttonClassName = '',
   inputClassName = '',
 }) => {
+  const isLogScale = scale === 'log';
+  const canUseLog = isLogScale && min > 0 && max > 0 && max > min;
   const displayValue = formatValue ? formatValue(value) : `${value}${unit}`;
+  const clampValue = (nextValue: number) => Math.min(max, Math.max(min, nextValue));
+
+  const logMin = Math.max(min, 1e-6);
+  const logMax = Math.max(max, logMin + 1e-6);
+  const logRange = Math.log(logMax) - Math.log(logMin);
+  const valueToT = (nextValue: number) =>
+    (Math.log(Math.max(logMin, nextValue)) - Math.log(logMin)) / logRange;
+  const tToValue = (t: number) =>
+    Math.exp(Math.log(logMin) + t * logRange);
 
   const handleDecrement = () => {
     if (disabled) return;
-    const newValue = Math.max(min, value - step);
-    onChange(newValue);
+    onChange(clampValue(value - step));
   };
 
   const handleIncrement = () => {
     if (disabled) return;
-    const newValue = Math.min(max, value + step);
-    onChange(newValue);
+    onChange(clampValue(value + step));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
-    onChange(parseFloat(e.target.value));
+    const rawValue = parseFloat(e.target.value);
+    const nextValue = canUseLog ? tToValue(rawValue) : rawValue;
+    onChange(clampValue(nextValue));
   };
 
   // Default styles that can be overridden
@@ -67,6 +82,11 @@ export const Slider: React.FC<SliderProps> = ({
     button: `modui-slider-button ${buttonClassName}`,
     input: `modui-slider-input ${inputClassName}`,
   };
+
+  const inputMin = canUseLog ? 0 : min;
+  const inputMax = canUseLog ? 1 : max;
+  const inputStep = canUseLog ? 0.001 : step;
+  const inputValue = canUseLog ? valueToT(clampValue(value)) : value;
 
   return (
     <div className={defaultStyles.container}>
@@ -91,11 +111,11 @@ export const Slider: React.FC<SliderProps> = ({
         <input
           type="range"
           className={defaultStyles.input}
-          value={value}
+          value={inputValue}
           onChange={handleInputChange}
-          min={min}
-          max={max}
-          step={step}
+          min={inputMin}
+          max={inputMax}
+          step={inputStep}
           disabled={disabled}
           aria-label={label || 'Slider'}
         />

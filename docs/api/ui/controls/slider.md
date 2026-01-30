@@ -94,6 +94,7 @@ import '@mode-7/mod/dist/index.css'; // Optional default styles
 | `min` | `number` | `0` | Minimum value |
 | `max` | `number` | `100` | Maximum value |
 | `step` | `number` | `1` | Step increment |
+| `scale` | `'linear' \| 'log'` | `'linear'` | Scale type (log requires min > 0) |
 | `label` | `string` | - | Optional label text |
 | `unit` | `string` | `''` | Unit suffix (e.g., "Hz", "%") |
 | `formatValue` | `(value: number) => string` | - | Custom value formatter |
@@ -165,7 +166,7 @@ function MyComponent() {
 
 ### Logarithmic Scale
 
-For parameters like frequency that work better on a logarithmic scale:
+For parameters like frequency that work better on a logarithmic scale, use the `scale="log"` prop:
 
 ```tsx
 import { useState } from 'react';
@@ -173,30 +174,23 @@ import { useState } from 'react';
 function LogSlider() {
   const [frequency, setFrequency] = useState(440);
 
-  // Convert linear slider position to logarithmic frequency
-  const minLog = Math.log(20);
-  const maxLog = Math.log(20000);
-  const scale = (maxLog - minLog) / 100;
-
-  const handleChange = (position: number) => {
-    const freq = Math.exp(minLog + scale * position);
-    setFrequency(freq);
-  };
-
-  const position = (Math.log(frequency) - minLog) / scale;
-
   return (
     <Slider
-      value={position}
-      onChange={handleChange}
-      min={0}
-      max={100}
+      value={frequency}
+      onChange={setFrequency}
+      min={20}
+      max={20000}
+      scale="log"
       label="Frequency"
-      formatValue={() => `${frequency.toFixed(0)} Hz`}
+      formatValue={(val) => `${val.toFixed(0)} Hz`}
     />
   );
 }
 ```
+
+The logarithmic scale automatically converts the slider position so that frequency changes feel more natural - moving the slider the same distance produces the same perceived pitch change regardless of position.
+
+**Note:** The `scale="log"` prop requires `min > 0` since logarithms are undefined for zero or negative values.
 
 ### With Tailwind Styling
 

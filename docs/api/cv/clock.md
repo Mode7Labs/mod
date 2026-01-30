@@ -7,6 +7,7 @@ The `Clock` component generates precise timing pulses (gate signals) that can tr
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `output` | `ModStreamRef` | Required | Reference to output the clock pulses |
+| `startOutput` | `ModStreamRef` | - | Optional reference for a start trigger signal (outputs 1 while running, 0 when stopped) |
 | `label` | `string` | `'clock'` | Label for the component in metadata |
 | `bpm` | `number` | `120` | Tempo in beats per minute (controlled or initial value) |
 | `onBpmChange` | `(bpm: number) => void` | - | Callback when BPM changes |
@@ -303,12 +304,20 @@ function App() {
 
 ### Clock Pulses
 
-- Each pulse is a short 10ms trigger
+- Each pulse is a short 10ms trigger at 16th note intervals (16 pulses per beat)
 - Pulses go from 0 to 1 and back to 0
-- Pulse timing is precise and based on BPM
+- Pulse timing is sample-accurate using an AudioWorklet for precise timing
+
+### AudioWorklet Implementation
+
+The Clock uses an AudioWorklet processor for sample-accurate timing. This provides:
+- Precise pulse generation on the audio thread
+- No timing jitter from JavaScript's main thread
+- Smooth BPM changes without timing glitches
 
 ### BPM Range
 
+- Supported range: 1-999 BPM
 - Typical range: 40-240 BPM
 - Lower values create slower rhythms
 - Higher values create faster rhythms
@@ -320,11 +329,19 @@ function App() {
 - Most commonly used with ADSR envelopes
 - Can also trigger sequencers or other CV modules
 
+### Start Output
+
+The optional `startOutput` prop provides a continuous signal:
+- Outputs 1 when the clock is running
+- Outputs 0 when the clock is stopped
+- Useful for gating other components based on transport state
+
 ### Sync Considerations
 
 - The clock starts immediately when `start()` is called
 - Changing BPM while running adjusts timing smoothly
 - `reset()` stops the clock and can be used to resync
+- Phase resets to 0 when clock starts or restarts
 
 ## Related
 

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-01-31
+
+### Added
+- **DiodeFilter** component - AudioWorklet-based nonlinear ladder filter with cutoff, resonance, drive, and CV modulation
+- **Slider log scale** - New `scale="log"` prop for logarithmic slider behavior (ideal for frequency controls)
+- **Clock startOutput** - Optional second output providing transport running state (1 when running, 0 when stopped)
+- DiodeFilter documentation and 20 unit tests
+- AudioWorklet mocking in test setup for worklet-based components
+
+### Changed
+- Clock now uses AudioWorklet for sample-accurate timing (previously used setInterval)
+- Clock pulses at 16th note intervals for better sequencer integration
+- Slider documentation updated with simpler log scale example
+
+### Contributors
+- Zack Hagan (@zhagan) - Clock worklet, DiodeFilter, Slider log scale
+
 ## [0.1.8] - 2025-01-22
 
 ### Added
@@ -66,7 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modular signal routing system
 - Basic documentation
 
-[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.10...HEAD
+[0.1.10]: https://github.com/Mode7Labs/mod/compare/v0.1.8...v0.1.10
 [0.1.8]: https://github.com/Mode7Labs/mod/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/Mode7Labs/mod/compare/v0.1.0...v0.1.7
 [0.1.0]: https://github.com/Mode7Labs/mod/releases/tag/v0.1.0

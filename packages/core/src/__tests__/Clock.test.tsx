@@ -485,6 +485,18 @@ describe('Clock', () => {
       expect(output.current?.metadata?.sourceType).toBe('cv');
     });
 
+    it('should set startOutput ref when provided', () => {
+      const output = createMockStreamRef();
+      const startOutput = createMockStreamRef();
+
+      render(<Clock output={output} startOutput={startOutput} />);
+
+      expect(startOutput.current).toBeDefined();
+      expect(startOutput.current?.audioNode).toBeDefined();
+      expect(startOutput.current?.metadata?.label).toBe('clock-start');
+      expect(startOutput.current?.metadata?.sourceType).toBe('cv');
+    });
+
     it('should cleanup on unmount', () => {
       const output = createMockStreamRef();
 
@@ -504,7 +516,7 @@ describe('Clock', () => {
       expect(gain?.disconnect).toHaveBeenCalled();
     });
 
-    it('should clear interval on unmount when running', () => {
+    it('should cleanup worklet on unmount when running', () => {
       const output = createMockStreamRef();
 
       const { unmount } = render(

@@ -53,6 +53,9 @@ export type { CompressorProps, CompressorRenderProps, CompressorHandle } from '.
 export { Distortion } from './components/processors/Distortion';
 export type { DistortionProps, DistortionRenderProps, DistortionHandle } from './components/processors/Distortion';
 
+export { DiodeFilter } from './components/processors/DiodeFilter';
+export type { DiodeFilterProps, DiodeFilterRenderProps, DiodeFilterHandle } from './components/processors/DiodeFilter';
+
 export { Panner } from './components/processors/Panner';
 export type { PannerProps, PannerRenderProps, PannerHandle } from './components/processors/Panner';
 
@@ -112,7 +115,7 @@ export type { LevelMeterProps, LevelMeterRenderProps } from './components/visual
 
 // ModUI - Visual Components
 export { Slider } from './modui/Slider';
-export type { SliderProps } from './modui/Slider';
+export type { SliderProps, SliderScale } from './modui/Slider';
 
 export { Knob } from './modui/Knob';
 export type { KnobProps } from './modui/Knob';
