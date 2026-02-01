@@ -65,7 +65,8 @@ export default defineConfig({
           text: 'API Reference',
           items: [
             { text: 'Overview', link: '/api/overview' },
-            { text: 'AudioProvider', link: '/api/audio-provider' }
+            { text: 'AudioProvider', link: '/api/audio-provider' },
+            { text: 'Transport System', link: '/api/transport' }
           ]
         },
         {

@@ -1,5 +1,7 @@
 // Context
 export { AudioProvider, useAudioContext } from './context/AudioContext';
+export { TransportProvider, useTransport } from './context/TransportContext';
+export type { TransportProviderProps } from './context/TransportContext';
 
 // Hooks
 export { useModStream } from './hooks/useModStream';
@@ -7,6 +9,18 @@ export { useModStreamToMediaStream } from './hooks/useModStreamToMediaStream';
 
 // Types
 export type { ModStream, ModStreamRef } from './types/ModStream';
+
+// Transport + Scheduling
+export { Transport } from './components/transport/Transport';
+export type { TransportLike, TransportOptions, TransportState, TransportEvent } from './components/transport/Transport';
+export { WorkletTransport } from './components/transport/TransportWorklet';
+export type { WorkletTransportOptions, TransportTick } from './components/transport/TransportWorklet';
+export { TransportBus } from './components/transport/TransportBus';
+export type { TransportBusEvent, TransportBusTick } from './components/transport/TransportBus';
+export { Scheduler } from './components/transport/Scheduler';
+export type { Schedulable, SchedulerOptions } from './components/transport/Scheduler';
+export { PhaseSequencer } from './components/transport/PhaseSequencer';
+export type { PhaseSequencerOptions, SequencerStepEvent } from './components/transport/PhaseSequencer';
 
 // Source Components
 export { Microphone } from './components/sources/Microphone';

@@ -34,6 +34,10 @@ Thank you to everyone who has contributed to MOD!
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
+## Core Team
+
+- **Joe Logan** ([@jlognn](https://github.com/jlognn)) - Creator and maintainer
+
 ## Contributors
 
-- **Zack Hagan** ([@zhagan](https://github.com/zhagan)) - Clock worklet, DiodeFilter, Slider log scale
+- **Zack Hagan** ([@zhagan](https://github.com/zhagan)) - Clock worklet, DiodeFilter, Slider log scale, Transport system
