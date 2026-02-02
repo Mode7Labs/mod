@@ -45,7 +45,7 @@ export const VCA = React.forwardRef<VCAHandle, VCAProps>(({
   children,
 }, ref) => {
   const audioContext = useAudioContext();
-  const [gain, setGain] = useControlledState(controlledGain, 1.0, onGainChange);
+  const [gain, setGain] = useControlledState(controlledGain, 0.0, onGainChange);
   const [enabled, setEnabled] = useControlledState(controlledEnabled, true, onEnabledChange);
 
   const gainNodeRef = useRef<GainNode | null>(null);

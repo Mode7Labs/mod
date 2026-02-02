@@ -4,6 +4,7 @@ import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
 
 export type OscillatorType = 'sine' | 'square' | 'sawtooth' | 'triangle';
+export type CVTarget = 'frequency' | 'detune';
 
 export interface ToneGeneratorHandle {
   getState: () => {
@@ -36,6 +37,8 @@ export interface ToneGeneratorProps {
   // CV inputs
   cv?: ModStreamRef;
   cvAmount?: number;
+  /** CV modulation target: 'frequency' (Hz) or 'detune' (cents, 100 = 1 semitone) */
+  cvTarget?: CVTarget;
   // Render props
   children?: (props: ToneGeneratorRenderProps) => ReactNode;
 }
@@ -51,6 +54,7 @@ export const ToneGenerator = React.forwardRef<ToneGeneratorHandle, ToneGenerator
   onWaveformChange,
   cv,
   cvAmount = 100,
+  cvTarget = 'frequency',
   children,
 }, ref) => {
   const audioContext = useAudioContext();
@@ -109,7 +113,7 @@ export const ToneGenerator = React.forwardRef<ToneGeneratorHandle, ToneGenerator
     };
   }, [audioContext, label]);
 
-  // Handle CV input connection for frequency modulation
+  // Handle CV input connection for frequency/detune modulation
   useEffect(() => {
     if (!cv?.current || !oscillatorRef.current || !audioContext) return;
 
@@ -118,9 +122,13 @@ export const ToneGenerator = React.forwardRef<ToneGeneratorHandle, ToneGenerator
     cvGain.gain.value = cvAmount;
     cvGainRef.current = cvGain;
 
-    // Connect CV to frequency parameter via gain
+    // Connect CV to target parameter via gain
+    const targetParam = cvTarget === 'detune'
+      ? oscillatorRef.current.detune
+      : oscillatorRef.current.frequency;
+
     cv.current.gain.connect(cvGain);
-    cvGain.connect(oscillatorRef.current.frequency);
+    cvGain.connect(targetParam);
 
     return () => {
       if (cvGain && cv.current) {
@@ -132,7 +140,7 @@ export const ToneGenerator = React.forwardRef<ToneGeneratorHandle, ToneGenerator
         }
       }
     };
-  }, [cv?.current?.audioNode ? String(cv.current.audioNode) : 'null', cvAmount]);
+  }, [cv?.current?.audioNode ? String(cv.current.audioNode) : 'null', cvAmount, cvTarget]);
 
   // Update frequency when it changes (base value)
   useEffect(() => {

@@ -5,5 +5,8 @@ export interface ModuleDefinition {
   color: string;
   inputs: number;
   outputs: number;
+  inputLabels?: string[];
+  inputIds?: string[];
+  outputLabels?: string[];
   defaultParams?: Record<string, any>;
 }

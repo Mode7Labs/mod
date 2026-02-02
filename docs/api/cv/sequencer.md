@@ -1,73 +1,86 @@
 # Sequencer
 
-The `Sequencer` component generates a sequence of CV values that step through a pattern. Perfect for creating melodic sequences, rhythmic patterns, or stepped modulation.
+The `Sequencer` component outputs a stepped CV sequence and optional gate/accent pulses. It advances on an external clock input, making it phase-locked to the rest of the patch.
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `output` | `ModStreamRef` | Required | Reference to output the CV sequence |
-| `gateOutput` | `ModStreamRef` | - | Optional separate output for gate/trigger signals |
-| `label` | `string` | `'sequencer'` | Label for the component in metadata |
-| `numSteps` | `number` | `8` | Number of steps in the sequence |
-| `steps` | `number[]` | `Array(numSteps).fill(0.5)` | Sequence step values (controlled or initial value) |
-| `onStepsChange` | `(steps: number[]) => void` | - | Callback when steps change |
-| `bpm` | `number` | `120` | Tempo in beats per minute (controlled or initial value) |
-| `onBpmChange` | `(bpm: number) => void` | - | Callback when BPM changes |
-| `onCurrentStepChange` | `(currentStep: number) => void` | - | Callback when current step changes |
-| `onPlayingChange` | `(isPlaying: boolean) => void` | - | Callback when playback state changes |
-| `children` | `function` | - | Render prop function receiving control props |
+| `output` | `ModStreamRef` | Required | CV output for step values |
+| `gateOutput` | `ModStreamRef` | - | Optional gate output per step |
+| `accentOutput` | `ModStreamRef` | - | Optional accent CV output per step |
+| `clock` | `ModStreamRef` | - | Clock input (required to advance steps) |
+| `reset` | `ModStreamRef` | - | Optional reset pulse input |
+| `label` | `string` | `'sequencer'` | Label for metadata |
+| `numSteps` | `number` | `8` | Default number of steps |
+| `steps` | `Step[]` | `Array(numSteps)` | Controlled step data |
+| `onStepsChange` | `(steps: Step[]) => void` | - | Callback when steps change |
+| `division` | `number` | `4` | Clock division (1/4, 1/8, 1/16, etc.) |
+| `onDivisionChange` | `(division: number) => void` | - | Callback when division changes |
+| `length` | `number` | `numSteps` | Active sequence length (1-32) |
+| `onLengthChange` | `(length: number) => void` | - | Callback when length changes |
+| `swing` | `number` | `0` | Swing amount (-50 to 50) |
+| `onSwingChange` | `(swing: number) => void` | - | Callback when swing changes |
+| `onCurrentStepChange` | `(currentStep: number) => void` | - | Callback when step changes |
+| `children` | `function` | - | Render prop function |
+
+### Step Model
+
+Each step is an object:
+
+```ts
+interface Step {
+  active: boolean;      // Whether this step triggers
+  value: number;        // CV output value
+  lengthPct: number;    // Gate length as percentage (10-100)
+  slide: boolean;       // Portamento into this step
+  accent: boolean;      // Accent flag for this step
+}
+```
 
 ## Render Props
 
-When using the `children` render prop, the following controls are provided:
-
 | Property | Type | Description |
 |----------|------|-------------|
-| `steps` | `number[]` | Array of step values (0-1) |
-| `setSteps` | `(steps: number[]) => void` | Update all step values |
-| `currentStep` | `number` | Currently playing step index |
-| `bpm` | `number` | Tempo in beats per minute |
-| `setBpm` | `(value: number) => void` | Update the tempo |
-| `isPlaying` | `boolean` | Whether the sequencer is running |
-| `play` | `() => void` | Start the sequencer |
-| `pause` | `() => void` | Pause the sequencer |
-| `reset` | `() => void` | Stop and reset to first step |
+| `steps` | `Step[]` | Current step data |
+| `setSteps` | `(steps: Step[]) => void` | Replace all step data |
+| `currentStep` | `number` | Current step index |
+| `division` | `number` | Clock division |
+| `setDivision` | `(value: number) => void` | Update division |
+| `length` | `number` | Sequence length |
+| `setLength` | `(value: number) => void` | Update length |
+| `swing` | `number` | Swing amount |
+| `setSwing` | `(value: number) => void` | Update swing |
+| `reset` | `() => void` | Reset to step 0 |
 
 ## Usage
 
-### Basic Usage
+### Clock -> Sequencer (Required)
+
+The sequencer advances only when it receives clock pulses. Connect a `Clock` output to the `Sequencer` `clock` input.
 
 ```tsx
-import { Sequencer, ToneGenerator, Monitor } from '@mode-7/mod';
+import { Clock, Sequencer, Monitor } from '@mode-7/mod';
 import { useRef } from 'react';
 
 function App() {
+  const clockOut = useRef(null);
   const seqOut = useRef(null);
-  const toneOut = useRef(null);
+  const seqGate = useRef(null);
 
   return (
     <>
-      <Sequencer output={seqOut}>
-        {({ play, pause, isPlaying }) => (
-          <button onClick={isPlaying ? pause : play}>
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-        )}
-      </Sequencer>
-      <ToneGenerator
-        output={toneOut}
-        frequency={200}
-        cv={seqOut}
-        cvAmount={400}  // Modulate frequency by sequence values
-      />
-      <Monitor input={toneOut} />
+      <Clock output={clockOut}>
+        {({ start }) => <button onClick={start}>Start</button>}
+      </Clock>
+      <Sequencer output={seqOut} gateOutput={seqGate} clock={clockOut} />
+      <Monitor input={seqOut} />
     </>
   );
 }
 ```
 
-### Step Sequencer with UI
+### Per-Step Features (Length, Slide, Accent)
 
 ```tsx
 import { Sequencer } from '@mode-7/mod';
@@ -75,302 +88,118 @@ import { useRef } from 'react';
 
 function App() {
   const seqOut = useRef(null);
+  const gateOut = useRef(null);
+  const accentOut = useRef(null);
 
   return (
-    <Sequencer output={seqOut} numSteps={16}>
-      {({
-        steps,
-        setSteps,
-        currentStep,
-        bpm,
-        setBpm,
-        isPlaying,
-        play,
-        pause,
-        reset
-      }) => (
-        <div>
-          <div>
-            <button onClick={play} disabled={isPlaying}>Play</button>
-            <button onClick={pause} disabled={!isPlaying}>Pause</button>
-            <button onClick={reset}>Reset</button>
-          </div>
-
-          <div>
-            <label>BPM: {bpm}</label>
-            <input
-              type="range"
-              min="40"
-              max="240"
-              value={bpm}
-              onChange={(e) => setBpm(Number(e.target.value))}
-            />
-          </div>
-
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {steps.map((value, index) => (
-              <div key={index} style={{ textAlign: 'center' }}>
-                <input
-                  type="range"
-                  orient="vertical"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={value}
-                  onChange={(e) => {
-                    const newSteps = [...steps];
-                    newSteps[index] = Number(e.target.value);
-                    setSteps(newSteps);
-                  }}
-                  style={{
-                    writingMode: 'bt-lr',
-                    appearance: 'slider-vertical',
-                    width: '20px',
-                    height: '100px',
-                  }}
-                />
-                <div
-                  style={{
-                    width: '20px',
-                    height: '10px',
-                    backgroundColor: currentStep === index ? 'blue' : 'gray',
-                    marginTop: '4px',
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+    <Sequencer output={seqOut} gateOutput={gateOut} accentOutput={accentOut}>
+      {({ steps, setSteps }) => (
+        <button
+          onClick={() => {
+            const next = [...steps];
+            next[1] = { ...next[1], active: true, lengthPct: 50, slide: true, accent: true };
+            setSteps(next);
+          }}
+        >
+          Configure Step 2
+        </button>
       )}
     </Sequencer>
   );
 }
 ```
 
-### Melodic Sequence
+### TB-303 Style Acid Sequence
 
 ```tsx
-import { Sequencer, ToneGenerator, Monitor } from '@mode-7/mod';
+import { Clock, Sequencer, ToneGenerator, Filter, ADSR, Monitor } from '@mode-7/mod';
 import { useRef } from 'react';
 
-function App() {
-  const seqOut = useRef(null);
-  const toneOut = useRef(null);
-
-  // Convert MIDI notes to 0-1 range
-  const notesToSteps = (notes: number[]) => {
-    const min = Math.min(...notes);
-    const max = Math.max(...notes);
-    const range = max - min || 1;
-    return notes.map(note => (note - min) / range);
-  };
-
-  // C major scale pattern
-  const melody = [60, 62, 64, 65, 67, 69, 71, 72]; // MIDI notes
-  const steps = notesToSteps(melody);
-
-  return (
-    <>
-      <Sequencer output={seqOut} numSteps={8}>
-        {({ setSteps, setBpm, play, isPlaying }) => {
-          React.useEffect(() => {
-            setSteps(steps);
-            setBpm(120);
-            if (!isPlaying) play();
-          }, []);
-          return null;
-        }}
-      </Sequencer>
-      <ToneGenerator
-        output={toneOut}
-        frequency={220}  // Base frequency (A3)
-        cv={seqOut}
-        cvAmount={880}  // Range for melody
-        waveform="square"
-      />
-      <Monitor input={toneOut} />
-    </>
-  );
-}
-```
-
-### With ADSR Envelope
-
-```tsx
-import { Sequencer, ADSR, Clock, ToneGenerator, Monitor } from '@mode-7/mod';
-import { useRef } from 'react';
-
-function App() {
+function AcidBass() {
   const clockOut = useRef(null);
   const seqOut = useRef(null);
+  const seqGate = useRef(null);
+  const seqAccent = useRef(null);
+  const toneOut = useRef(null);
+  const filterOut = useRef(null);
   const adsrOut = useRef(null);
-  const toneOut = useRef(null);
 
   return (
     <>
-      <Clock output={clockOut}>
-        {({ start, stop, isRunning, setBpm }) => {
-          React.useEffect(() => {
-            setBpm(120);
-            start();
-          }, []);
-          return null;
-        }}
+      <Clock output={clockOut} bpm={140}>
+        {({ start, stop, isRunning }) => (
+          <button onClick={isRunning ? stop : start}>
+            {isRunning ? 'Stop' : 'Start'}
+          </button>
+        )}
       </Clock>
-      <Sequencer output={seqOut} numSteps={8} />
-      <ADSR gate={clockOut} output={adsrOut} />
-      <ToneGenerator
-        output={toneOut}
-        frequency={220}
-        cv={seqOut}
-        cvAmount={440}
-      />
-      <Monitor input={toneOut} />
-    </>
-  );
-}
-```
 
-### Controlled Props
-
-You can control the Sequencer from external state using controlled props:
-
-```tsx
-import { Sequencer, ToneGenerator, Monitor } from '@mode-7/mod';
-import { useState, useRef } from 'react';
-
-function App() {
-  const seqOut = useRef(null);
-  const toneOut = useRef(null);
-  const [steps, setSteps] = useState([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
-  const [bpm, setBpm] = useState(120);
-  const [currentStep, setCurrentStep] = useState(0);
-
-  return (
-    <>
       <Sequencer
         output={seqOut}
-        numSteps={8}
-        steps={steps}
-        onStepsChange={setSteps}
-        bpm={bpm}
-        onBpmChange={setBpm}
-        onCurrentStepChange={setCurrentStep}
+        gateOutput={seqGate}
+        accentOutput={seqAccent}
+        clock={clockOut}
+        division={4}
+        swing={15}
       >
-        {({ play, pause, isPlaying }) => (
-          <>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {steps.map((_, index) => (
-                <div
-                  key={index}
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: currentStep === index ? 'blue' : 'gray',
-                  }}
-                />
-              ))}
-            </div>
-            <button onClick={isPlaying ? pause : play}>
-              {isPlaying ? 'Pause' : 'Play'}
-            </button>
-          </>
+        {({ steps, setSteps, currentStep }) => (
+          <div>
+            <span>Step: {currentStep}</span>
+            {/* Step editor UI would go here */}
+          </div>
         )}
       </Sequencer>
 
-      <div>
-        <label>BPM: {bpm}</label>
-        <input
-          type="range"
-          min="40"
-          max="240"
-          value={bpm}
-          onChange={(e) => setBpm(Number(e.target.value))}
-        />
-      </div>
-
-      <ToneGenerator output={toneOut} frequency={200} cv={seqOut} cvAmount={400} />
-      <Monitor input={toneOut} />
+      <ToneGenerator output={toneOut} frequency={110} cv={seqOut} cvAmount={200} />
+      <Filter input={toneOut} output={filterOut} type="lowpass" frequency={800} cv={seqAccent} cvAmount={2000} />
+      <ADSR input={filterOut} output={adsrOut} gate={seqGate} attack={0.01} decay={0.2} sustain={0.3} release={0.1} />
+      <Monitor input={adsrOut} />
     </>
   );
 }
 ```
 
-### Imperative Refs
+## Behavior Notes
 
-For programmatic access to state and transport control, you can use refs:
+### Clock Division
 
-```tsx
-import { Sequencer, SequencerHandle, ToneGenerator, Monitor } from '@mode-7/mod';
-import { useRef, useEffect } from 'react';
+The sequencer uses the incoming clock pulses as a base and advances steps according to `division`:
 
-function App() {
-  const seqRef = useRef<SequencerHandle>(null);
-  const seqOut = useRef(null);
-  const toneOut = useRef(null);
+| Division | Note Value |
+|----------|------------|
+| `1` | 1/4 notes |
+| `2` | 1/8 notes |
+| `4` | 1/16 notes (default) |
+| `8` | 1/32 notes |
+| `16` | 1/64 notes |
 
-  useEffect(() => {
-    // Access current state
-    if (seqRef.current) {
-      const state = seqRef.current.getState();
-      console.log('Steps:', state.steps);
-      console.log('Current step:', state.currentStep);
-      console.log('BPM:', state.bpm);
-      console.log('Is playing:', state.isPlaying);
-    }
-  }, []);
+### Gate Length
 
-  const handleTransport = () => {
-    if (!seqRef.current) return;
+Each step has `lengthPct` (10-100). Gate and accent outputs stay high for that percentage of the step duration.
 
-    // Use imperative transport methods
-    seqRef.current.play();
-    // seqRef.current.pause();
-    // seqRef.current.reset();
-  };
+### Slide
 
-  return (
-    <>
-      <Sequencer ref={seqRef} output={seqOut} numSteps={8} />
-      <ToneGenerator output={toneOut} frequency={220} cv={seqOut} cvAmount={440} />
-      <button onClick={handleTransport}>Play</button>
-      <Monitor input={toneOut} />
-    </>
-  );
-}
-```
+- Slide is applied **into** a step when `step[i].slide` is true and both the previous and current steps are active.
+- The previous step's gate is held at 100% across the boundary (legato).
+- CV glides using a 65ms linear ramp after the step boundary.
 
-**Note:** The imperative handle provides `play()`, `pause()`, and `reset()` for transport control, plus `getState()` for read-only access. To control steps and BPM programmatically, use the controlled props pattern shown above.
+### Accent
 
-## Important Notes
+Accent raises the `accentOutput` CV high for the step duration (`lengthPct`). Connect this to a filter cutoff or VCA for classic accent behavior.
 
-### Step Values
+### Swing
 
-- Each step value is in the range 0-1
-- Scale these values using the receiving module's `cvAmount` parameter
-- For frequency modulation, map 0-1 to your desired frequency range
+Swing delays every other step to create a shuffle feel:
+- Positive values (1-50) delay odd steps
+- Negative values (-50 to -1) delay even steps
+- The delay is a percentage of the step duration
 
-### Timing
+### Reset
 
-- The BPM parameter controls how fast the sequence plays
-- Each step represents one beat
-- Default BPM is 120
-
-### Sequence Length
-
-- Set via `numSteps` prop (default 8)
-- Steps array is initialized with 0.5 for each step
-- Can be changed dynamically via `setSteps()`
-
-### Playback
-
-- Sequence loops continuously when playing
-- `reset()` stops playback and returns to step 0
-- Current step is shown in `currentStep` property
+Sending a pulse to the `reset` input resets the sequence to step 0 on the next clock tick.
 
 ## Related
 
-- [Clock](/api/cv/clock) - Generate gate signals in sync with the sequence
-- [ADSR](/api/cv/adsr) - Add envelopes to each step
-- [ToneGenerator](/api/sources/tone-generator) - Create melodies
-- [Filter](/api/processors/filter) - Modulate filter cutoff
+- [Clock](/api/cv/clock) - Clock source for step advance
+- [ADSR](/api/cv/adsr) - Use gate output to trigger envelopes
+- [ToneGenerator](/api/sources/tone-generator) - CV pitch source

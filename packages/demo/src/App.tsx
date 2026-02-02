@@ -75,6 +75,7 @@ interface Connection {
 function ModularSynth() {
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [moduleParams, setModuleParams] = useState<Record<string, Record<string, any>>>({});
   const [draggingConnection, setDraggingConnection] = useState<{
     from: { moduleId: string; portId: string };
     mousePos: Position;
@@ -96,43 +97,54 @@ function ModularSynth() {
     return streamRefs.current.get(portId);
   };
 
+  const cloneParams = (params: Record<string, any>) => {
+    try {
+      return JSON.parse(JSON.stringify(params));
+    } catch {
+      return { ...params };
+    }
+  };
+
+  const getDefaultParams = (type: string) => {
+    const definition = MODULE_DEFINITIONS[type];
+    return cloneParams(definition?.defaultParams ?? {});
+  };
+
+  const handleParamChange = (moduleId: string, key: string, value: any) => {
+    setModuleParams(prev => ({
+      ...prev,
+      [moduleId]: {
+        ...prev[moduleId],
+        [key]: value,
+      },
+    }));
+  };
+
   const addModule = (type: string, position?: Position) => {
-    const id = `module-${Date.now()}`;
+    const id = `module-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const ports: Port[] = [];
     const definition = MODULE_DEFINITIONS[type];
 
     // Create input ports based on definition
     for (let i = 0; i < definition.inputs; i++) {
-      const portId = `${id}-in-${i}`;
+      const suffix = definition.inputIds?.[i] ?? `in-${i}`;
+      const portId = `${id}-${suffix}`;
+      const label = definition.inputLabels?.[i] ?? (definition.inputs === 1 ? 'In' : `In ${i + 1}`);
       ports.push({
         id: portId,
         type: 'input',
-        label: definition.inputs === 1 ? 'In' : `In ${i + 1}`,
+        label,
       });
-    }
-
-    // Add CV input ports for modules that support CV modulation
-    if (type === 'Filter') {
-      ports.push({ id: `${id}-cv-freq`, type: 'input', label: 'CV' });
-    } else if (type === 'ToneGenerator') {
-      ports.push({ id: `${id}-cv-freq`, type: 'input', label: 'CV' });
-    } else if (type === 'NoiseGenerator') {
-      ports.push({ id: `${id}-cv-gain`, type: 'input', label: 'CV' });
-    } else if (type === 'Panner') {
-      ports.push({ id: `${id}-cv-pan`, type: 'input', label: 'CV' });
-    } else if (type === 'VCA') {
-      ports.push({ id: `${id}-cv-gain`, type: 'input', label: 'CV' });
-    } else if (type === 'ADSR') {
-      ports.push({ id: `${id}-cv-gate`, type: 'input', label: 'Gate' });
     }
 
     // Create output ports based on definition
     for (let i = 0; i < definition.outputs; i++) {
       const portId = `${id}-out-${i}`;
+      const label = definition.outputLabels?.[i] ?? (definition.outputs === 1 ? 'Out' : `Out ${i + 1}`);
       ports.push({
         id: portId,
         type: 'output',
-        label: definition.outputs === 1 ? 'Out' : `Out ${i + 1}`,
+        label,
       });
     }
 
@@ -144,7 +156,12 @@ function ModularSynth() {
       color: definition.color,
       enabled: true,
     };
+
     setModules([...modules, newModule]);
+    setModuleParams(prev => ({
+      ...prev,
+      [id]: getDefaultParams(type),
+    }));
   };
 
   const moveModule = (id: string, position: Position) => {
@@ -158,6 +175,12 @@ function ModularSynth() {
     setConnections(prev => prev.filter(c =>
       c.from.moduleId !== id && c.to.moduleId !== id
     ));
+    // Remove params for this module
+    setModuleParams(prev => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
   };
 
   const toggleModuleEnabled = (id: string) => {
@@ -357,6 +380,7 @@ function ModularSynth() {
           {renderModuleButton('NoiseGenerator')}
           {renderModuleButton('Microphone')}
           {renderModuleButton('MP3Deck')}
+          {renderModuleButton('Sampler')}
           {renderModuleButton('StreamingAudioDeck')}
         </div>
 
@@ -371,6 +395,7 @@ function ModularSynth() {
         <div className="module-category">
           <h3>Processors</h3>
           {renderModuleButton('Filter')}
+          {renderModuleButton('DiodeFilter')}
           {renderModuleButton('Delay')}
           {renderModuleButton('Reverb')}
           {renderModuleButton('Compressor')}
@@ -523,11 +548,14 @@ function ModularSynth() {
               supportsEnabled={supportsEnabled(module.type)}
             >
               <ModuleRenderer
+                moduleId={module.id}
                 moduleType={module.type}
                 inputStreams={inputStreams}
                 outputStreams={outputStreams}
                 cvInputStreams={cvInputStreams}
                 enabled={module.enabled}
+                params={moduleParams[module.id] || getDefaultParams(module.type)}
+                onParamChange={handleParamChange}
               />
             </ModuleWrapper>
           );

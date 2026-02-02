@@ -353,6 +353,42 @@ describe('ToneGenerator', () => {
     });
   });
 
+  describe('CV Target', () => {
+    it('should default cvTarget to frequency', () => {
+      const output = createMockStreamRef();
+      const cv = createMockStreamRef();
+
+      // Just verify it renders without error with default
+      const { container } = render(
+        <ToneGenerator output={output} cv={cv} cvAmount={100} />
+      );
+
+      expect(container).toBeDefined();
+    });
+
+    it('should accept cvTarget=frequency', () => {
+      const output = createMockStreamRef();
+      const cv = createMockStreamRef();
+
+      const { container } = render(
+        <ToneGenerator output={output} cv={cv} cvAmount={100} cvTarget="frequency" />
+      );
+
+      expect(container).toBeDefined();
+    });
+
+    it('should accept cvTarget=detune', () => {
+      const output = createMockStreamRef();
+      const cv = createMockStreamRef();
+
+      const { container } = render(
+        <ToneGenerator output={output} cv={cv} cvAmount={1200} cvTarget="detune" />
+      );
+
+      expect(container).toBeDefined();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle very low frequencies', () => {
       const output = createMockStreamRef();

@@ -9,7 +9,7 @@ The `VCA` component controls the amplitude (volume) of an audio signal using a c
 | `input` | `ModStreamRef` | Required | Audio signal to amplify |
 | `output` | `ModStreamRef` | Required | Amplified audio output |
 | `label` | `string` | `'vca'` | Label for the component in metadata |
-| `gain` | `number` | `1.0` | Initial gain/amplitude (0-2+) |
+| `gain` | `number` | `0.0` | Initial gain/amplitude (0-2+) |
 | `onGainChange` | `(gain: number) => void` | - | Callback when gain changes |
 | `cv` | `ModStreamRef` | - | Optional CV input for gain modulation |
 | `cvAmount` | `number` | `1.0` | Amount of CV modulation to apply |

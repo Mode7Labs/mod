@@ -14,8 +14,9 @@ The `ToneGenerator` component creates an oscillator that generates tones at a sp
 | `onGainChange` | `(gain: number) => void` | - | Callback when gain changes |
 | `waveform` | `OscillatorType` | `'square'` | Waveform type (controlled or initial value): `'sine'`, `'square'`, `'sawtooth'`, or `'triangle'` |
 | `onWaveformChange` | `(waveform: OscillatorType) => void` | - | Callback when waveform changes |
-| `cv` | `ModStreamRef` | - | Optional CV input for frequency modulation |
-| `cvAmount` | `number` | `100` | Amount of CV modulation to apply to frequency |
+| `cv` | `ModStreamRef` | - | Optional CV input for frequency/detune modulation |
+| `cvAmount` | `number` | `100` | Amount of CV modulation to apply |
+| `cvTarget` | `CVTarget` | `'frequency'` | CV modulation target: `'frequency'` (Hz) or `'detune'` (cents) |
 | `children` | `function` | - | Render prop function receiving control props |
 
 ## Render Props
@@ -104,7 +105,7 @@ function App() {
 }
 ```
 
-### With LFO Modulation
+### With LFO Modulation (Frequency)
 
 ```tsx
 import { ToneGenerator, LFO } from '@mode-7/mod';
@@ -122,7 +123,39 @@ function App() {
         frequency={440}
         cv={lfoOut}
         cvAmount={200}  // Modulate frequency by ±200Hz
+        cvTarget="frequency"  // Default - modulates in Hz
       />
+    </>
+  );
+}
+```
+
+### With Sequencer Pitch CV (Detune)
+
+For musical pitch control from a sequencer, use `cvTarget="detune"` which modulates in cents (100 cents = 1 semitone):
+
+```tsx
+import { ToneGenerator, Sequencer, Clock, Monitor } from '@mode-7/mod';
+import { useRef } from 'react';
+
+function MelodicSynth() {
+  const clockOut = useRef(null);
+  const seqCv = useRef(null);
+  const seqGate = useRef(null);
+  const toneOut = useRef(null);
+
+  return (
+    <>
+      <Clock output={clockOut} bpm={120} />
+      <Sequencer output={seqCv} gateOutput={seqGate} clock={clockOut} />
+      <ToneGenerator
+        output={toneOut}
+        frequency={261.63}  // Middle C
+        cv={seqCv}
+        cvAmount={100}  // 1 semitone per unit of CV
+        cvTarget="detune"  // Modulates in cents for musical intervals
+      />
+      <Monitor input={toneOut} />
     </>
   );
 }
@@ -218,8 +251,25 @@ function App() {
 
 - The oscillator starts immediately when the component mounts
 - The oscillator is stopped and cleaned up when the component unmounts
-- CV modulation adds to the base frequency value
+- CV modulation adds to the base frequency/detune value
 - All waveform types are standard Web Audio oscillator waveforms
+
+### CV Target Modes
+
+| Mode | Unit | Use Case |
+|------|------|----------|
+| `'frequency'` | Hz | Vibrato, frequency sweeps, direct Hz control |
+| `'detune'` | Cents | Musical pitch control (100 cents = 1 semitone, 1200 = 1 octave) |
+
+**When to use `'detune'`:**
+- Sequencer-driven melodies where CV represents note values
+- Pitch bend effects
+- Precise musical intervals
+
+**When to use `'frequency'`:**
+- LFO vibrato effects
+- Frequency sweeps and sound design
+- Direct frequency modulation in Hz
 
 ## Related
 

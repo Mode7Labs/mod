@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
-import { LFO, LFOHandle, LFOWaveform } from '../components/cv/LFO';
+import { LFO, LFOHandle, LFOWaveform, SawtoothDirection } from '../components/cv/LFO';
 
 describe('LFO', () => {
   describe('Render Props Pattern', () => {
@@ -9,11 +9,12 @@ describe('LFO', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
         <LFO output={output}>
-          {({ frequency, amplitude, waveform }) => (
+          {({ frequency, amplitude, waveform, direction }) => (
             <div>
               <span>Frequency: {frequency}</span>
               <span>Amplitude: {amplitude}</span>
               <span>Waveform: {waveform}</span>
+              <span>Direction: {direction}</span>
             </div>
           )}
         </LFO>
@@ -22,6 +23,7 @@ describe('LFO', () => {
       expect(getByText('Frequency: 1')).toBeInTheDocument();
       expect(getByText('Amplitude: 1')).toBeInTheDocument();
       expect(getByText('Waveform: sine')).toBeInTheDocument();
+      expect(getByText('Direction: up')).toBeInTheDocument();
     });
 
     it('should allow changing frequency through render props', async () => {
@@ -236,6 +238,7 @@ describe('LFO', () => {
           expect(state?.frequency).toBe(1);
           expect(state?.amplitude).toBe(1);
           expect(state?.waveform).toBe('sine');
+          expect(state?.direction).toBe('up');
         };
 
         return (
@@ -337,6 +340,7 @@ describe('LFO', () => {
       'square',
       'sawtooth',
       'triangle',
+      'sampleHold',
     ];
 
     waveforms.forEach((waveformType) => {
@@ -349,6 +353,114 @@ describe('LFO', () => {
         );
 
         expect(getByText(`Waveform: ${waveformType}`)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Sawtooth Direction', () => {
+    it('should default direction to up', () => {
+      const output = createMockStreamRef();
+      const { getByText } = render(
+        <LFO output={output} waveform="sawtooth">
+          {({ direction }) => <span>Direction: {direction}</span>}
+        </LFO>
+      );
+
+      expect(getByText('Direction: up')).toBeInTheDocument();
+    });
+
+    it('should accept controlled direction prop', () => {
+      const output = createMockStreamRef();
+      const { getByText } = render(
+        <LFO output={output} waveform="sawtooth" direction="down">
+          {({ direction }) => <span>Direction: {direction}</span>}
+        </LFO>
+      );
+
+      expect(getByText('Direction: down')).toBeInTheDocument();
+    });
+
+    it('should allow changing direction through render props', async () => {
+      const output = createMockStreamRef();
+      const { getByText, getByRole } = render(
+        <LFO output={output} waveform="sawtooth">
+          {({ direction, setDirection }) => (
+            <div>
+              <span>Direction: {direction}</span>
+              <button onClick={() => setDirection('down')}>Change Direction</button>
+            </div>
+          )}
+        </LFO>
+      );
+
+      expect(getByText('Direction: up')).toBeInTheDocument();
+
+      act(() => {
+        getByRole('button').click();
+      });
+
+      await waitFor(() => {
+        expect(getByText('Direction: down')).toBeInTheDocument();
+      });
+    });
+
+    it('should call onDirectionChange when direction changes', async () => {
+      const output = createMockStreamRef();
+      const onDirectionChange = jest.fn();
+
+      const { getByRole } = render(
+        <LFO
+          output={output}
+          waveform="sawtooth"
+          direction="up"
+          onDirectionChange={onDirectionChange}
+        >
+          {({ setDirection }) => (
+            <button onClick={() => setDirection('down')}>Change</button>
+          )}
+        </LFO>
+      );
+
+      act(() => {
+        getByRole('button').click();
+      });
+
+      await waitFor(() => {
+        expect(onDirectionChange).toHaveBeenCalledWith('down');
+      });
+    });
+  });
+
+  describe('Sample and Hold', () => {
+    it('should support sampleHold waveform', () => {
+      const output = createMockStreamRef();
+      const { getByText } = render(
+        <LFO output={output} waveform="sampleHold">
+          {({ waveform }) => <span>Waveform: {waveform}</span>}
+        </LFO>
+      );
+
+      expect(getByText('Waveform: sampleHold')).toBeInTheDocument();
+    });
+
+    it('should call onWaveformChange when switching to sampleHold', async () => {
+      const output = createMockStreamRef();
+      const onWaveformChange = jest.fn();
+
+      const { getByRole } = render(
+        <LFO output={output} waveform="sine" onWaveformChange={onWaveformChange}>
+          {({ setWaveform }) => (
+            <button onClick={() => setWaveform('sampleHold')}>To S&H</button>
+          )}
+        </LFO>
+      );
+
+      act(() => {
+        getByRole('button').click();
+      });
+
+      await waitFor(() => {
+        expect(onWaveformChange).toHaveBeenCalledWith('sampleHold');
       });
     });
   });

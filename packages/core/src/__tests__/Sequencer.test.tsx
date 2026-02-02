@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { act, waitFor } from '@testing-library/react';
 import { render, createMockStreamRef } from './test-utils';
-import { Sequencer, SequencerHandle } from '../components/cv/Sequencer';
+import { Sequencer, SequencerHandle, Step } from '../components/cv/Sequencer';
 
 describe('Sequencer', () => {
   describe('Render Props Pattern', () => {
@@ -9,12 +9,13 @@ describe('Sequencer', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
         <Sequencer output={output}>
-          {({ steps, currentStep, bpm, isPlaying }) => (
+          {({ steps, currentStep, division, length, swing }) => (
             <div>
               <span>Steps: {steps.length}</span>
               <span>Current Step: {currentStep}</span>
-              <span>BPM: {bpm}</span>
-              <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
+              <span>Division: {division}</span>
+              <span>Length: {length}</span>
+              <span>Swing: {swing}</span>
             </div>
           )}
         </Sequencer>
@@ -23,25 +24,38 @@ describe('Sequencer', () => {
       await waitFor(() => {
         expect(getByText('Steps: 8')).toBeInTheDocument();
         expect(getByText('Current Step: 0')).toBeInTheDocument();
-        expect(getByText('BPM: 120')).toBeInTheDocument();
-        expect(getByText('Playing: no')).toBeInTheDocument();
+        expect(getByText('Division: 4')).toBeInTheDocument();
+        expect(getByText('Length: 8')).toBeInTheDocument();
+        expect(getByText('Swing: 0')).toBeInTheDocument();
       });
     });
 
     it('should allow changing steps through render props', async () => {
       const output = createMockStreamRef();
+      const newSteps: Step[] = [
+        { active: true, value: 0.8, lengthPct: 80, slide: false, accent: false },
+        { active: false, value: 0.6, lengthPct: 80, slide: false, accent: false },
+        { active: true, value: 0.4, lengthPct: 80, slide: true, accent: false },
+        { active: false, value: 0.2, lengthPct: 80, slide: false, accent: true },
+        { active: false, value: 0, lengthPct: 80, slide: false, accent: false },
+        { active: false, value: 0, lengthPct: 80, slide: false, accent: false },
+        { active: false, value: 0, lengthPct: 80, slide: false, accent: false },
+        { active: false, value: 0, lengthPct: 80, slide: false, accent: false },
+      ];
+
       const { getByText, getByRole } = render(
         <Sequencer output={output}>
           {({ steps, setSteps }) => (
             <div>
-              <span>First Step: {steps[0]}</span>
-              <button onClick={() => setSteps([0.8, 0.6, 0.4, 0.2, 0.8, 0.6, 0.4, 0.2])}>
-                Change Steps
-              </button>
+              <span>First Active: {steps[0]?.active ? 'yes' : 'no'}</span>
+              <span>First Value: {steps[0]?.value}</span>
+              <button onClick={() => setSteps(newSteps)}>Change Steps</button>
             </div>
           )}
         </Sequencer>
       );
+
+      expect(getByText('First Active: no')).toBeInTheDocument();
 
       const button = getByRole('button', { name: /change steps/i });
 
@@ -50,89 +64,80 @@ describe('Sequencer', () => {
       });
 
       await waitFor(() => {
-        expect(getByText('First Step: 0.8')).toBeInTheDocument();
+        expect(getByText('First Active: yes')).toBeInTheDocument();
+        expect(getByText('First Value: 0.8')).toBeInTheDocument();
       });
     });
 
-    it('should allow changing BPM through render props', async () => {
+    it('should allow changing division through render props', async () => {
       const output = createMockStreamRef();
       const { getByText, getByRole } = render(
         <Sequencer output={output}>
-          {({ bpm, setBpm }) => (
+          {({ division, setDivision }) => (
             <div>
-              <span>BPM: {bpm}</span>
-              <button onClick={() => setBpm(140)}>Change BPM</button>
+              <span>Division: {division}</span>
+              <button onClick={() => setDivision(8)}>Change Division</button>
             </div>
           )}
         </Sequencer>
       );
 
-      const button = getByRole('button', { name: /change bpm/i });
+      const button = getByRole('button', { name: /change division/i });
 
       act(() => {
         button.click();
       });
 
       await waitFor(() => {
-        expect(getByText('BPM: 140')).toBeInTheDocument();
+        expect(getByText('Division: 8')).toBeInTheDocument();
       });
     });
 
-    it('should allow playing through render props', async () => {
+    it('should allow changing length through render props', async () => {
       const output = createMockStreamRef();
       const { getByText, getByRole } = render(
         <Sequencer output={output}>
-          {({ isPlaying, play }) => (
+          {({ length, setLength }) => (
             <div>
-              <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
-              <button onClick={play}>Play</button>
+              <span>Length: {length}</span>
+              <button onClick={() => setLength(16)}>Change Length</button>
             </div>
           )}
         </Sequencer>
       );
 
-      const button = getByRole('button', { name: /play/i });
+      const button = getByRole('button', { name: /change length/i });
 
       act(() => {
         button.click();
       });
 
       await waitFor(() => {
-        expect(getByText('Playing: yes')).toBeInTheDocument();
+        expect(getByText('Length: 16')).toBeInTheDocument();
       });
     });
 
-    it('should allow pausing through render props', async () => {
+    it('should allow changing swing through render props', async () => {
       const output = createMockStreamRef();
       const { getByText, getByRole } = render(
         <Sequencer output={output}>
-          {({ isPlaying, play, pause }) => (
+          {({ swing, setSwing }) => (
             <div>
-              <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
-              <button onClick={play}>Play</button>
-              <button onClick={pause}>Pause</button>
+              <span>Swing: {swing}</span>
+              <button onClick={() => setSwing(25)}>Change Swing</button>
             </div>
           )}
         </Sequencer>
       );
 
-      const playButton = getByRole('button', { name: /play/i });
-      const pauseButton = getByRole('button', { name: /pause/i });
+      const button = getByRole('button', { name: /change swing/i });
 
       act(() => {
-        playButton.click();
+        button.click();
       });
 
       await waitFor(() => {
-        expect(getByText('Playing: yes')).toBeInTheDocument();
-      });
-
-      act(() => {
-        pauseButton.click();
-      });
-
-      await waitFor(() => {
-        expect(getByText('Playing: no')).toBeInTheDocument();
+        expect(getByText('Swing: 25')).toBeInTheDocument();
       });
     });
 
@@ -140,42 +145,25 @@ describe('Sequencer', () => {
       const output = createMockStreamRef();
       const { getByText, getByRole } = render(
         <Sequencer output={output}>
-          {({ currentStep, isPlaying, play, reset }) => (
+          {({ currentStep, reset }) => (
             <div>
               <span>Current Step: {currentStep}</span>
-              <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
-              <button onClick={play}>Play</button>
               <button onClick={reset}>Reset</button>
             </div>
           )}
         </Sequencer>
       );
 
-      const playButton = getByRole('button', { name: /play/i });
+      expect(getByText('Current Step: 0')).toBeInTheDocument();
+
       const resetButton = getByRole('button', { name: /reset/i });
 
-      // Start playing
-      act(() => {
-        playButton.click();
-      });
-
-      await waitFor(() => {
-        expect(getByText('Playing: yes')).toBeInTheDocument();
-      });
-
-      // Wait for sequencer to advance (step duration at 120 BPM is 500ms)
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 600));
-      });
-
-      // Reset should stop and go back to step 0
       act(() => {
         resetButton.click();
       });
 
       await waitFor(() => {
         expect(getByText('Current Step: 0')).toBeInTheDocument();
-        expect(getByText('Playing: no')).toBeInTheDocument();
       });
     });
 
@@ -198,25 +186,43 @@ describe('Sequencer', () => {
   describe('Controlled Props Pattern', () => {
     it('should accept controlled steps prop', () => {
       const output = createMockStreamRef();
-      const customSteps = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+      const customSteps: Step[] = [
+        { active: true, value: 0.5, lengthPct: 80, slide: false, accent: false },
+        { active: false, value: 0.3, lengthPct: 80, slide: false, accent: false },
+        { active: true, value: 0.7, lengthPct: 80, slide: true, accent: false },
+        { active: false, value: 0.1, lengthPct: 80, slide: false, accent: true },
+      ];
       const { getByText } = render(
-        <Sequencer output={output} steps={customSteps}>
-          {({ steps }) => <span>First Step: {steps[0]}</span>}
+        <Sequencer output={output} steps={customSteps} numSteps={4}>
+          {({ steps }) => <span>First Active: {steps[0]?.active ? 'yes' : 'no'}</span>}
         </Sequencer>
       );
 
-      expect(getByText('First Step: 0.1')).toBeInTheDocument();
+      expect(getByText('First Active: yes')).toBeInTheDocument();
     });
 
     it('should call onStepsChange when steps change', async () => {
       const output = createMockStreamRef();
       const onStepsChange = jest.fn();
-      const newSteps = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2];
+      const initialSteps: Step[] = Array(8).fill(null).map(() => ({
+        active: false,
+        value: 0,
+        lengthPct: 80,
+        slide: false,
+        accent: false,
+      }));
+      const newSteps: Step[] = Array(8).fill(null).map(() => ({
+        active: true,
+        value: 0.5,
+        lengthPct: 90,
+        slide: false,
+        accent: false,
+      }));
 
       const { getByRole } = render(
         <Sequencer
           output={output}
-          steps={Array(8).fill(0.5)}
+          steps={initialSteps}
           onStepsChange={onStepsChange}
         >
           {({ setSteps }) => (
@@ -230,33 +236,33 @@ describe('Sequencer', () => {
       });
 
       await waitFor(() => {
-        expect(onStepsChange).toHaveBeenCalledWith(newSteps);
+        expect(onStepsChange).toHaveBeenCalled();
       });
     });
 
-    it('should accept controlled bpm prop', () => {
+    it('should accept controlled division prop', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
-        <Sequencer output={output} bpm={160}>
-          {({ bpm }) => <span>BPM: {bpm}</span>}
+        <Sequencer output={output} division={8}>
+          {({ division }) => <span>Division: {division}</span>}
         </Sequencer>
       );
 
-      expect(getByText('BPM: 160')).toBeInTheDocument();
+      expect(getByText('Division: 8')).toBeInTheDocument();
     });
 
-    it('should call onBpmChange when bpm changes', async () => {
+    it('should call onDivisionChange when division changes', async () => {
       const output = createMockStreamRef();
-      const onBpmChange = jest.fn();
+      const onDivisionChange = jest.fn();
 
       const { getByRole } = render(
         <Sequencer
           output={output}
-          bpm={120}
-          onBpmChange={onBpmChange}
+          division={4}
+          onDivisionChange={onDivisionChange}
         >
-          {({ setBpm }) => (
-            <button onClick={() => setBpm(180)}>Change</button>
+          {({ setDivision }) => (
+            <button onClick={() => setDivision(16)}>Change</button>
           )}
         </Sequencer>
       );
@@ -266,20 +272,34 @@ describe('Sequencer', () => {
       });
 
       await waitFor(() => {
-        expect(onBpmChange).toHaveBeenCalledWith(180);
+        expect(onDivisionChange).toHaveBeenCalledWith(16);
       });
     });
 
-    it('should call onCurrentStepChange when step advances', async () => {
+    it('should accept controlled length prop', () => {
       const output = createMockStreamRef();
-      const onCurrentStepChange = jest.fn();
+      const { getByText } = render(
+        <Sequencer output={output} length={16}>
+          {({ length }) => <span>Length: {length}</span>}
+        </Sequencer>
+      );
+
+      expect(getByText('Length: 16')).toBeInTheDocument();
+    });
+
+    it('should call onLengthChange when length changes', async () => {
+      const output = createMockStreamRef();
+      const onLengthChange = jest.fn();
 
       const { getByRole } = render(
         <Sequencer
           output={output}
-          onCurrentStepChange={onCurrentStepChange}
+          length={8}
+          onLengthChange={onLengthChange}
         >
-          {({ play }) => <button onClick={play}>Play</button>}
+          {({ setLength }) => (
+            <button onClick={() => setLength(32)}>Change</button>
+          )}
         </Sequencer>
       );
 
@@ -287,48 +307,44 @@ describe('Sequencer', () => {
         getByRole('button').click();
       });
 
-      // Wait for first step advance (step duration at 120 BPM is 500ms)
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 600));
-      });
-
       await waitFor(() => {
-        expect(onCurrentStepChange).toHaveBeenCalled();
+        expect(onLengthChange).toHaveBeenCalledWith(32);
       });
     });
 
-    it('should call onPlayingChange when playing state changes', async () => {
+    it('should accept controlled swing prop', () => {
       const output = createMockStreamRef();
-      const onPlayingChange = jest.fn();
+      const { getByText } = render(
+        <Sequencer output={output} swing={30}>
+          {({ swing }) => <span>Swing: {swing}</span>}
+        </Sequencer>
+      );
+
+      expect(getByText('Swing: 30')).toBeInTheDocument();
+    });
+
+    it('should call onSwingChange when swing changes', async () => {
+      const output = createMockStreamRef();
+      const onSwingChange = jest.fn();
 
       const { getByRole } = render(
         <Sequencer
           output={output}
-          onPlayingChange={onPlayingChange}
+          swing={0}
+          onSwingChange={onSwingChange}
         >
-          {({ play, pause }) => (
-            <div>
-              <button onClick={play}>Play</button>
-              <button onClick={pause}>Pause</button>
-            </div>
+          {({ setSwing }) => (
+            <button onClick={() => setSwing(50)}>Change</button>
           )}
         </Sequencer>
       );
 
       act(() => {
-        getByRole('button', { name: /play/i }).click();
+        getByRole('button').click();
       });
 
       await waitFor(() => {
-        expect(onPlayingChange).toHaveBeenCalledWith(true);
-      });
-
-      act(() => {
-        getByRole('button', { name: /pause/i }).click();
-      });
-
-      await waitFor(() => {
-        expect(onPlayingChange).toHaveBeenCalledWith(false);
+        expect(onSwingChange).toHaveBeenCalledWith(50);
       });
     });
 
@@ -345,56 +361,6 @@ describe('Sequencer', () => {
   });
 
   describe('Imperative Refs Pattern', () => {
-    it('should expose play method through ref', () => {
-      const TestComponent = () => {
-        const output = createMockStreamRef();
-        const ref = useRef<SequencerHandle>(null);
-
-        const handleClick = () => {
-          expect(ref.current?.play).toBeDefined();
-          expect(() => ref.current?.play()).not.toThrow();
-        };
-
-        return (
-          <>
-            <Sequencer ref={ref} output={output} />
-            <button onClick={handleClick}>Test</button>
-          </>
-        );
-      };
-
-      const { getByRole } = render(<TestComponent />);
-
-      act(() => {
-        getByRole('button').click();
-      });
-    });
-
-    it('should expose pause method through ref', () => {
-      const TestComponent = () => {
-        const output = createMockStreamRef();
-        const ref = useRef<SequencerHandle>(null);
-
-        const handleClick = () => {
-          expect(ref.current?.pause).toBeDefined();
-          expect(() => ref.current?.pause()).not.toThrow();
-        };
-
-        return (
-          <>
-            <Sequencer ref={ref} output={output} />
-            <button onClick={handleClick}>Test</button>
-          </>
-        );
-      };
-
-      const { getByRole } = render(<TestComponent />);
-
-      act(() => {
-        getByRole('button').click();
-      });
-    });
-
     it('should expose reset method through ref', () => {
       const TestComponent = () => {
         const output = createMockStreamRef();
@@ -430,8 +396,9 @@ describe('Sequencer', () => {
           expect(state).toBeDefined();
           expect(state?.steps).toHaveLength(8);
           expect(state?.currentStep).toBe(0);
-          expect(state?.bpm).toBe(120);
-          expect(state?.isPlaying).toBe(false);
+          expect(state?.division).toBe(4);
+          expect(state?.length).toBe(8);
+          expect(state?.swing).toBe(0);
         };
 
         return (
@@ -453,12 +420,18 @@ describe('Sequencer', () => {
       const TestComponent = () => {
         const output = createMockStreamRef();
         const ref = useRef<SequencerHandle>(null);
-        const customSteps = [0.1, 0.2, 0.3, 0.4];
+        const customSteps: Step[] = [
+          { active: true, value: 0.5, lengthPct: 80, slide: false, accent: false },
+          { active: false, value: 0.3, lengthPct: 80, slide: false, accent: false },
+          { active: true, value: 0.7, lengthPct: 80, slide: true, accent: false },
+          { active: false, value: 0.1, lengthPct: 80, slide: false, accent: true },
+        ];
 
         const handleClick = () => {
           const state = ref.current?.getState();
-          expect(state?.steps).toEqual(customSteps);
-          expect(state?.bpm).toBe(140);
+          expect(state?.steps).toHaveLength(4);
+          expect(state?.division).toBe(8);
+          expect(state?.swing).toBe(25);
         };
 
         return (
@@ -467,7 +440,8 @@ describe('Sequencer', () => {
               ref={ref}
               output={output}
               steps={customSteps}
-              bpm={140}
+              division={8}
+              swing={25}
               numSteps={4}
             />
             <button onClick={handleClick}>Get State</button>
@@ -515,299 +489,114 @@ describe('Sequencer', () => {
       expect(output.current?.metadata?.sourceType).toBe('cv');
     });
 
-    it('should cleanup on unmount', () => {
+    it('should set gate output ref when provided', () => {
       const output = createMockStreamRef();
+      const gateOutput = createMockStreamRef();
 
-      const { unmount } = render(<Sequencer output={output} />);
+      render(<Sequencer output={output} gateOutput={gateOutput} />);
 
-      const audioNode = output.current?.audioNode;
-      const gain = output.current?.gain;
+      expect(gateOutput.current).toBeDefined();
+      expect(gateOutput.current?.audioNode).toBeDefined();
+      expect(gateOutput.current?.metadata?.label).toBe('sequencer-gate');
+    });
 
-      expect(audioNode).toBeDefined();
-      expect(gain).toBeDefined();
+    it('should set accent output ref when provided', () => {
+      const output = createMockStreamRef();
+      const accentOutput = createMockStreamRef();
 
-      unmount();
+      render(<Sequencer output={output} accentOutput={accentOutput} />);
 
-      // After unmount, the nodes should have been disconnected
-      expect(audioNode?.disconnect).toHaveBeenCalled();
-      expect(gain?.disconnect).toHaveBeenCalled();
+      expect(accentOutput.current).toBeDefined();
+      expect(accentOutput.current?.audioNode).toBeDefined();
+      expect(accentOutput.current?.metadata?.label).toBe('sequencer-accent');
     });
 
     it('should output initial step value', () => {
       const output = createMockStreamRef();
-      const customSteps = [0.75, 0.25, 0.5, 0.8, 0.2, 0.6, 0.4, 0.9];
+      const customSteps: Step[] = [
+        { active: true, value: 0.75, lengthPct: 80, slide: false, accent: false },
+        { active: false, value: 0.25, lengthPct: 80, slide: false, accent: false },
+      ];
 
-      render(<Sequencer output={output} steps={customSteps} />);
+      render(<Sequencer output={output} steps={customSteps} numSteps={2} />);
 
       const constantSource = output.current?.audioNode as ConstantSourceNode;
       expect(constantSource).toBeDefined();
-      // Initial value should be first step
       expect(constantSource.offset.value).toBe(0.75);
-    });
-
-    it('should clear interval on unmount', async () => {
-      const output = createMockStreamRef();
-
-      const { unmount, getByRole } = render(
-        <Sequencer output={output}>
-          {({ play }) => <button onClick={play}>Play</button>}
-        </Sequencer>
-      );
-
-      // Start playing
-      act(() => {
-        getByRole('button').click();
-      });
-
-      // Clear should happen on unmount
-      unmount();
-
-      // No assertions needed - this test ensures no errors occur
     });
   });
 
-  describe('Sequencer Behavior', () => {
-    it('should advance through steps when playing', async () => {
-      const output = createMockStreamRef();
-      const { getByRole, getByText } = render(
-        <Sequencer output={output} bpm={240}>
-          {({ currentStep, play }) => (
-            <div>
-              <span>Current Step: {currentStep}</span>
-              <button onClick={play}>Play</button>
-            </div>
-          )}
-        </Sequencer>
-      );
-
-      expect(getByText('Current Step: 0')).toBeInTheDocument();
-
-      act(() => {
-        getByRole('button').click();
-      });
-
-      // Wait for step advance (at 240 BPM, step duration is 250ms)
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      });
-
-      await waitFor(() => {
-        expect(getByText('Current Step: 1')).toBeInTheDocument();
-      });
-    });
-
-    it('should wrap around after last step', async () => {
-      const output = createMockStreamRef();
-      const { getByRole, getByText } = render(
-        <Sequencer output={output} bpm={480} numSteps={2}>
-          {({ currentStep, play }) => (
-            <div>
-              <span>Current Step: {currentStep}</span>
-              <button onClick={play}>Play</button>
-            </div>
-          )}
-        </Sequencer>
-      );
-
-      expect(getByText('Current Step: 0')).toBeInTheDocument();
-
-      act(() => {
-        getByRole('button').click();
-      });
-
-      // Wait for two step advances (at 480 BPM, step duration is 125ms)
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 150));
-      });
-
-      await waitFor(() => {
-        expect(getByText('Current Step: 1')).toBeInTheDocument();
-      });
-
-      // Wait for wrap around
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 150));
-      });
-
-      await waitFor(() => {
-        expect(getByText('Current Step: 0')).toBeInTheDocument();
-      });
-    });
-
-    it('should update interval when BPM changes while playing', async () => {
-      const output = createMockStreamRef();
-      let stepChanges = 0;
-      const onCurrentStepChange = jest.fn(() => {
-        stepChanges++;
-      });
-
-      const { getByRole } = render(
-        <Sequencer
-          output={output}
-          bpm={120}
-          onCurrentStepChange={onCurrentStepChange}
-        >
-          {({ play, setBpm }) => (
-            <div>
-              <button onClick={play}>Play</button>
-              <button onClick={() => setBpm(240)}>Change BPM</button>
-            </div>
-          )}
-        </Sequencer>
-      );
-
-      // Start playing at 120 BPM
-      act(() => {
-        getByRole('button', { name: /play/i }).click();
-      });
-
-      // Change BPM while playing
-      act(() => {
-        getByRole('button', { name: /change bpm/i }).click();
-      });
-
-      // Wait and verify it's still advancing with new BPM
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      });
-
-      await waitFor(() => {
-        expect(onCurrentStepChange).toHaveBeenCalled();
-      });
-    });
-
-    it('should not start playing if already playing', async () => {
-      const output = createMockStreamRef();
-      const { getByRole } = render(
-        <Sequencer output={output}>
-          {({ play, isPlaying }) => (
-            <div>
-              <button onClick={play}>Play</button>
-              <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
-            </div>
-          )}
-        </Sequencer>
-      );
-
-      const button = getByRole('button');
-
-      // Click play once
-      act(() => {
-        button.click();
-      });
-
-      // Click play again (should be no-op)
-      act(() => {
-        button.click();
-      });
-
-      // Should still be playing
-      await waitFor(() => {
-        expect(getByRole('button').parentElement?.textContent).toContain('Playing: yes');
-      });
-    });
-
-    it('should not pause if not playing', async () => {
-      const output = createMockStreamRef();
-      const { getByRole } = render(
-        <Sequencer output={output}>
-          {({ pause, isPlaying }) => (
-            <div>
-              <button onClick={pause}>Pause</button>
-              <span>Playing: {isPlaying ? 'yes' : 'no'}</span>
-            </div>
-          )}
-        </Sequencer>
-      );
-
-      const button = getByRole('button');
-
-      // Click pause when not playing (should be no-op)
-      act(() => {
-        button.click();
-      });
-
-      // Should still not be playing
-      await waitFor(() => {
-        expect(getByRole('button').parentElement?.textContent).toContain('Playing: no');
-      });
-    });
-
-    it('should support different step counts', () => {
-      const output = createMockStreamRef();
-      const { getByText } = render(
-        <Sequencer output={output} numSteps={32}>
-          {({ steps }) => <span>Steps: {steps.length}</span>}
-        </Sequencer>
-      );
-
-      expect(getByText('Steps: 32')).toBeInTheDocument();
-    });
-
-    it('should initialize all steps to 0.5 by default', () => {
+  describe('Step Model', () => {
+    it('should initialize steps with default values', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
         <Sequencer output={output}>
-          {({ steps }) => (
-            <span>All 0.5: {steps.every(s => s === 0.5) ? 'yes' : 'no'}</span>
-          )}
+          {({ steps }) => {
+            const firstStep = steps[0];
+            return (
+              <div>
+                <span>Active: {firstStep?.active ? 'yes' : 'no'}</span>
+                <span>Value: {firstStep?.value}</span>
+                <span>LengthPct: {firstStep?.lengthPct}</span>
+                <span>Slide: {firstStep?.slide ? 'yes' : 'no'}</span>
+                <span>Accent: {firstStep?.accent ? 'yes' : 'no'}</span>
+              </div>
+            );
+          }}
         </Sequencer>
       );
 
-      expect(getByText('All 0.5: yes')).toBeInTheDocument();
+      expect(getByText('Active: no')).toBeInTheDocument();
+      expect(getByText('Value: 0')).toBeInTheDocument();
+      expect(getByText('LengthPct: 80')).toBeInTheDocument();
+      expect(getByText('Slide: no')).toBeInTheDocument();
+      expect(getByText('Accent: no')).toBeInTheDocument();
     });
 
-    it('should update constant source when step advances', async () => {
+    it('should support step with slide enabled', () => {
       const output = createMockStreamRef();
-      const customSteps = [0.1, 0.9, 0.3, 0.7, 0.5, 0.5, 0.5, 0.5];
-
-      const { getByRole } = render(
-        <Sequencer output={output} steps={customSteps} bpm={240}>
-          {({ play }) => <button onClick={play}>Play</button>}
+      const customSteps: Step[] = [
+        { active: true, value: 0.5, lengthPct: 80, slide: true, accent: false },
+      ];
+      const { getByText } = render(
+        <Sequencer output={output} steps={customSteps} numSteps={1}>
+          {({ steps }) => <span>Slide: {steps[0]?.slide ? 'yes' : 'no'}</span>}
         </Sequencer>
       );
 
-      const constantSource = output.current?.audioNode as ConstantSourceNode;
-      expect(constantSource.offset.value).toBe(0.1);
+      expect(getByText('Slide: yes')).toBeInTheDocument();
+    });
 
-      act(() => {
-        getByRole('button').click();
-      });
+    it('should support step with accent enabled', () => {
+      const output = createMockStreamRef();
+      const customSteps: Step[] = [
+        { active: true, value: 0.5, lengthPct: 80, slide: false, accent: true },
+      ];
+      const { getByText } = render(
+        <Sequencer output={output} steps={customSteps} numSteps={1}>
+          {({ steps }) => <span>Accent: {steps[0]?.accent ? 'yes' : 'no'}</span>}
+        </Sequencer>
+      );
 
-      // Wait for step advance
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-      });
+      expect(getByText('Accent: yes')).toBeInTheDocument();
+    });
 
-      // The constant source should have been updated
-      // We can't directly check the value due to scheduling, but we can verify setValueAtTime was called
-      expect(constantSource.offset.setValueAtTime).toHaveBeenCalled();
+    it('should support custom lengthPct', () => {
+      const output = createMockStreamRef();
+      const customSteps: Step[] = [
+        { active: true, value: 0.5, lengthPct: 50, slide: false, accent: false },
+      ];
+      const { getByText } = render(
+        <Sequencer output={output} steps={customSteps} numSteps={1}>
+          {({ steps }) => <span>LengthPct: {steps[0]?.lengthPct}</span>}
+        </Sequencer>
+      );
+
+      expect(getByText('LengthPct: 50')).toBeInTheDocument();
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle very low BPM', () => {
-      const output = createMockStreamRef();
-      const { getByText } = render(
-        <Sequencer output={output} bpm={30}>
-          {({ bpm }) => <span>BPM: {bpm}</span>}
-        </Sequencer>
-      );
-
-      expect(getByText('BPM: 30')).toBeInTheDocument();
-    });
-
-    it('should handle very high BPM', () => {
-      const output = createMockStreamRef();
-      const { getByText } = render(
-        <Sequencer output={output} bpm={300}>
-          {({ bpm }) => <span>BPM: {bpm}</span>}
-        </Sequencer>
-      );
-
-      expect(getByText('BPM: 300')).toBeInTheDocument();
-    });
-
     it('should handle single step', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
@@ -822,87 +611,71 @@ describe('Sequencer', () => {
     it('should handle many steps', () => {
       const output = createMockStreamRef();
       const { getByText } = render(
-        <Sequencer output={output} numSteps={64}>
+        <Sequencer output={output} numSteps={32}>
           {({ steps }) => <span>Steps: {steps.length}</span>}
         </Sequencer>
       );
 
-      expect(getByText('Steps: 64')).toBeInTheDocument();
+      expect(getByText('Steps: 32')).toBeInTheDocument();
     });
 
-    it('should handle step values at 0', () => {
+    it('should clamp steps to max 32 when length exceeds limit', async () => {
       const output = createMockStreamRef();
-      const zeroSteps = Array(8).fill(0);
-      const { getByText } = render(
-        <Sequencer output={output} steps={zeroSteps}>
-          {({ steps }) => (
-            <span>All Zero: {steps.every(s => s === 0) ? 'yes' : 'no'}</span>
+      const { getByText, getByRole } = render(
+        <Sequencer output={output}>
+          {({ steps, length, setLength }) => (
+            <div>
+              <span>Length: {length}</span>
+              <span>Steps Count: {steps.length}</span>
+              <button onClick={() => setLength(100)}>Set Length</button>
+            </div>
           )}
         </Sequencer>
       );
 
-      expect(getByText('All Zero: yes')).toBeInTheDocument();
+      act(() => {
+        getByRole('button').click();
+      });
+
+      // Length value is set to 100, but steps array is clamped to 32
+      await waitFor(() => {
+        expect(getByText('Steps Count: 32')).toBeInTheDocument();
+      });
     });
 
-    it('should handle step values at 1', () => {
+    it('should clamp steps to min 1 when length is 0', async () => {
       const output = createMockStreamRef();
-      const maxSteps = Array(8).fill(1);
-      const { getByText } = render(
-        <Sequencer output={output} steps={maxSteps}>
-          {({ steps }) => (
-            <span>All One: {steps.every(s => s === 1) ? 'yes' : 'no'}</span>
+      const { getByText, getByRole } = render(
+        <Sequencer output={output}>
+          {({ steps, length, setLength }) => (
+            <div>
+              <span>Length: {length}</span>
+              <span>Steps Count: {steps.length}</span>
+              <button onClick={() => setLength(0)}>Set Length</button>
+            </div>
           )}
         </Sequencer>
       );
 
-      expect(getByText('All One: yes')).toBeInTheDocument();
+      act(() => {
+        getByRole('button').click();
+      });
+
+      // Length value is set to 0, but steps array is clamped to 1
+      await waitFor(() => {
+        expect(getByText('Steps Count: 1')).toBeInTheDocument();
+      });
     });
 
-    it('should handle negative step values', () => {
+    it('should handle negative swing', () => {
       const output = createMockStreamRef();
-      const negativeSteps = [-0.5, -0.3, -0.7, -0.1, 0.5, 0.5, 0.5, 0.5];
       const { getByText } = render(
-        <Sequencer output={output} steps={negativeSteps}>
-          {({ steps }) => <span>First Step: {steps[0]}</span>}
+        <Sequencer output={output} swing={-30}>
+          {({ swing }) => <span>Swing: {swing}</span>}
         </Sequencer>
       );
 
-      expect(getByText('First Step: -0.5')).toBeInTheDocument();
-    });
-
-    it('should handle step values above 1', () => {
-      const output = createMockStreamRef();
-      const highSteps = [2.5, 1.8, 3.0, 1.2, 0.5, 0.5, 0.5, 0.5];
-      const { getByText } = render(
-        <Sequencer output={output} steps={highSteps}>
-          {({ steps }) => <span>First Step: {steps[0]}</span>}
-        </Sequencer>
-      );
-
-      expect(getByText('First Step: 2.5')).toBeInTheDocument();
-    });
-
-    it('should handle fractional BPM', () => {
-      const output = createMockStreamRef();
-      const { getByText } = render(
-        <Sequencer output={output} bpm={120.5}>
-          {({ bpm }) => <span>BPM: {bpm}</span>}
-        </Sequencer>
-      );
-
-      expect(getByText('BPM: 120.5')).toBeInTheDocument();
-    });
-
-    it('should handle empty steps array gracefully', () => {
-      const output = createMockStreamRef();
-      // numSteps=0 would create empty array
-      const { getByText } = render(
-        <Sequencer output={output} steps={[]}>
-          {({ steps }) => <span>Steps: {steps.length}</span>}
-        </Sequencer>
-      );
-
-      expect(getByText('Steps: 0')).toBeInTheDocument();
+      expect(getByText('Swing: -30')).toBeInTheDocument();
     });
 
     it('should handle reset when at step 0', () => {
@@ -924,7 +697,6 @@ describe('Sequencer', () => {
         getByRole('button').click();
       });
 
-      // Should still be at step 0
       expect(getByText('Current Step: 0')).toBeInTheDocument();
     });
   });

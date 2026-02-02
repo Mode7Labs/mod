@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.11] - 2026-02-03
+
+### Added
+- **Sampler** component - Advanced sample playback with gate/pitch CV, multiple playback modes (one-shot, gate, loop), and start/end time controls
+- **Transport system** - DAW-style timing with Transport, TransportBus, TransportWorklet, Scheduler, and PhaseSequencer components
+- **Named CV input ports** - All modules now have labeled CV inputs (cv-freq, cv-gate, cv-clock, cv-reset, cv-pitch, etc.) for clearer signal routing
+- **Centralized parameter management** in demo app - Module parameters now stored in parent state for better control flow
+- **Enhanced ModuleRenderer** - Improved UI consistency across all module types with better parameter controls
+- Sampler documentation and comprehensive unit tests
+- Transport system documentation
+
+### Changed
+- Demo app now uses centralized state management for module parameters
+- All module definitions include inputLabels, inputIds, and outputLabels for better UX
+- ModuleRenderer refactored with consistent parameter handling across all module types
+- Improved sidebar organization with Sampler and DiodeFilter buttons
+
+### Contributors
+- Zack Hagan (@zhagan) - Demo app improvements, ModuleRenderer enhancements, named CV port system
+
 ## [0.1.10] - 2026-01-31
 
 ### Added
@@ -83,7 +103,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modular signal routing system
 - Basic documentation
 
-[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.10...HEAD
+[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.11...HEAD
+[0.1.11]: https://github.com/Mode7Labs/mod/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/Mode7Labs/mod/compare/v0.1.8...v0.1.10
 [0.1.8]: https://github.com/Mode7Labs/mod/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/Mode7Labs/mod/compare/v0.1.0...v0.1.7

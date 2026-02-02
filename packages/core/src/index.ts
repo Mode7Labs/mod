@@ -33,20 +33,23 @@ export { StreamingAudioDeck } from './components/sources/StreamingAudioDeck';
 export type { StreamingAudioDeckProps, StreamingAudioDeckRenderProps, StreamingAudioDeckHandle } from './components/sources/StreamingAudioDeck';
 
 export { ToneGenerator } from './components/sources/ToneGenerator';
-export type { ToneGeneratorProps, ToneGeneratorRenderProps, OscillatorType } from './components/sources/ToneGenerator';
+export type { ToneGeneratorProps, ToneGeneratorRenderProps, OscillatorType, CVTarget } from './components/sources/ToneGenerator';
 
 export { NoiseGenerator } from './components/sources/NoiseGenerator';
 export type { NoiseGeneratorProps, NoiseGeneratorRenderProps, NoiseType } from './components/sources/NoiseGenerator';
 
+export { Sampler } from './components/sources/Sampler';
+export type { SamplerProps, SamplerRenderProps, SamplerHandle, PlaybackMode } from './components/sources/Sampler';
+
 // CV Components
 export { LFO } from './components/cv/LFO';
-export type { LFOProps, LFORenderProps, LFOWaveform } from './components/cv/LFO';
+export type { LFOProps, LFORenderProps, LFOWaveform, SawtoothDirection, LFOHandle } from './components/cv/LFO';
 
 export { ADSR } from './components/cv/ADSR';
 export type { ADSRProps, ADSRRenderProps } from './components/cv/ADSR';
 
 export { Sequencer } from './components/cv/Sequencer';
-export type { SequencerProps, SequencerRenderProps } from './components/cv/Sequencer';
+export type { SequencerProps, SequencerRenderProps, SequencerHandle, Step } from './components/cv/Sequencer';
 
 export { Clock } from './components/cv/Clock';
 export type { ClockProps, ClockRenderProps } from './components/cv/Clock';
