@@ -1,8 +1,8 @@
-import { Transport } from '../components/transport/Transport';
-import { Scheduler, Schedulable } from '../components/transport/Scheduler';
-import { PhaseSequencer, SequencerStepEvent } from '../components/transport/PhaseSequencer';
-import { WorkletTransport } from '../components/transport/TransportWorklet';
-import { TransportBus } from '../components/transport/TransportBus';
+import { Transport } from '../transport';
+import { Scheduler, Schedulable } from '../scheduler';
+import { PhaseSequencer, SequencerStepEvent } from '../sequencer';
+import { WorkletTransport } from '../transportWorklet';
+import { TransportBus } from '../transportBus';
 
 // Mock AudioContext
 const createMockAudioContext = (currentTime = 0) => ({

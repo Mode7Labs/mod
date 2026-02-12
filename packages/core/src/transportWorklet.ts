@@ -1,4 +1,5 @@
-import { Transport, TransportEvent, TransportLike, TransportOptions } from './Transport';
+import { Transport, TransportEvent, TransportLike, TransportOptions } from './transport';
+import { getWorkletUrl } from './workletUrl';
 
 type WorkletCommand =
   | { type: 'init'; bpm: number; startBeat: number; tickIntervalSec: number }
@@ -23,157 +24,13 @@ export interface WorkletTransportOptions extends TransportOptions {
   tickIntervalSec?: number;
 }
 
-const TRANSPORT_WORKLET = `
-class TransportClockProcessor extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this._running = false;
-    this._startTime = 0;
-    this._startBeat = 0;
-    this._pausedBeat = 0;
-    this._bpm = 120;
-    this._tempoEvents = [{ time: 0, bpm: 120 }];
-    this._tickInterval = 0.025;
-    this._nextTickTime = 0;
-    this.port.onmessage = (event) => this._onMessage(event.data);
-  }
-
-  _onMessage(message) {
-    switch (message.type) {
-      case 'init':
-        this._bpm = message.bpm;
-        this._tempoEvents = [{ time: 0, bpm: message.bpm }];
-        this._startBeat = message.startBeat;
-        this._pausedBeat = message.startBeat;
-        this._tickInterval = message.tickIntervalSec;
-        this._nextTickTime = currentTime;
-        break;
-      case 'start':
-        this._running = true;
-        this._startTime = message.time;
-        this._startBeat = message.beat;
-        this._tempoEvents = [{ time: this._startTime, bpm: this._bpm }];
-        this._nextTickTime = message.time;
-        break;
-      case 'stop':
-        this._pausedBeat = this._getBeatAtTime(message.time);
-        this._running = false;
-        this._nextTickTime = message.time;
-        break;
-      case 'seek':
-        this._pausedBeat = message.beat;
-        if (this._running) {
-          this._startTime = message.time;
-          this._startBeat = message.beat;
-          this._tempoEvents = [{ time: this._startTime, bpm: this._bpm }];
-        } else {
-          this._startBeat = message.beat;
-        }
-        this._nextTickTime = message.time;
-        break;
-      case 'tempo':
-        this._bpm = message.bpm;
-        if (this._running) {
-          this._insertTempoEvent({ time: message.time, bpm: message.bpm }, true);
-        }
-        break;
-      case 'schedule-tempo':
-        this._insertTempoEvent({ time: message.time, bpm: message.bpm }, false);
-        break;
-      default:
-        break;
-    }
-  }
-
-  _insertTempoEvent(event, replaceFuture) {
-    const filtered = this._tempoEvents.filter((existing) => {
-      if (existing.time < event.time) {
-        return true;
-      }
-      if (existing.time === event.time) {
-        return false;
-      }
-      return !replaceFuture;
-    });
-    filtered.push(event);
-    filtered.sort((a, b) => a.time - b.time);
-    if (filtered.length === 0) {
-      filtered.push({ time: this._startTime, bpm: this._bpm });
-    }
-    this._tempoEvents = filtered;
-  }
-
-  _getBeatAtTime(time) {
-    if (!this._running) {
-      return this._pausedBeat;
-    }
-    if (time <= this._startTime) {
-      return this._startBeat;
-    }
-    // Integrate bpm over audio time so beat math stays locked to the audio clock.
-    let beat = this._startBeat;
-    let lastTime = this._startTime;
-    let bpm = this._tempoEvents[0] ? this._tempoEvents[0].bpm : this._bpm;
-    for (let i = 1; i < this._tempoEvents.length; i += 1) {
-      const event = this._tempoEvents[i];
-      if (event.time >= time) {
-        break;
-      }
-      beat += ((event.time - lastTime) * bpm) / 60;
-      lastTime = event.time;
-      bpm = event.bpm;
-    }
-    beat += ((time - lastTime) * bpm) / 60;
-    return beat;
-  }
-
-  process(_inputs, outputs) {
-    const output = outputs[0];
-    if (output && output[0]) {
-      // Keep the node alive without producing audio.
-      output[0].fill(0);
-    }
-    const now = currentTime;
-    if (now + 1e-6 >= this._nextTickTime) {
-      // Emit ticks on the audio thread and include the exact audio time.
-      const beat = this._getBeatAtTime(now);
-      this.port.postMessage({
-        type: 'tick',
-        time: now,
-        beat,
-        bpm: this._bpm,
-        running: this._running,
-      });
-      this._nextTickTime = now + this._tickInterval;
-    }
-    return true;
-  }
-}
-
-registerProcessor('transport-clock', TransportClockProcessor);
-`;
-
 const workletLoaders = new WeakMap<AudioContext, Promise<void>>();
-const workletUrls = new WeakMap<AudioContext, string>();
 
 const loadTransportWorklet = (audioContext: AudioContext) => {
   let loader = workletLoaders.get(audioContext);
   if (!loader) {
-    const blob = new Blob([TRANSPORT_WORKLET], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    workletUrls.set(audioContext, url);
-    loader = audioContext.audioWorklet.addModule(url).then(() => {
-      const loadedUrl = workletUrls.get(audioContext);
-      if (loadedUrl) {
-        URL.revokeObjectURL(loadedUrl);
-        workletUrls.delete(audioContext);
-      }
-    }).catch((err) => {
-      const loadedUrl = workletUrls.get(audioContext);
-      if (loadedUrl) {
-        URL.revokeObjectURL(loadedUrl);
-        workletUrls.delete(audioContext);
-      }
+    const url = getWorkletUrl('transport-clock.js');
+    loader = audioContext.audioWorklet.addModule(url).catch((err) => {
       workletLoaders.delete(audioContext);
       throw err;
     });
@@ -186,6 +43,7 @@ export class WorkletTransport implements TransportLike {
   private readonly context: AudioContext;
   private readonly transport: Transport;
   private node: AudioWorkletNode | null = null;
+  private keepAliveGain: GainNode | null = null;
   private listeners = new Set<TickListener>();
   private eventListeners = new Map<TransportEvent, Set<WorkletTransportListener>>();
   private tickIntervalSec: number;
@@ -204,11 +62,14 @@ export class WorkletTransport implements TransportLike {
     await loadTransportWorklet(context);
     const node = new AudioWorkletNode(context, 'transport-clock', {
       numberOfInputs: 0,
-      numberOfOutputs: 1,
-      outputChannelCount: [1],
+      numberOfOutputs: 3,
+      outputChannelCount: [1, 1, 1],
     });
-    // Keep the worklet pulling audio by connecting it to the destination.
-    node.connect(context.destination);
+    // Keep the worklet pulling audio without audibly monitoring the CV pulses.
+    const keepAlive = context.createGain();
+    keepAlive.gain.value = 0;
+    node.connect(keepAlive);
+    keepAlive.connect(context.destination);
     node.port.onmessage = (event) => {
       const message = event.data as TransportTick;
       if (message.type !== 'tick') {
@@ -223,7 +84,12 @@ export class WorkletTransport implements TransportLike {
       tickIntervalSec: instance.tickIntervalSec,
     } satisfies WorkletCommand);
     instance.node = node;
+    instance.keepAliveGain = keepAlive;
     return instance;
+  }
+
+  getNode(): AudioWorkletNode | null {
+    return this.node;
   }
 
   get currentTime(): number {
@@ -310,6 +176,10 @@ export class WorkletTransport implements TransportLike {
     this.node.port.onmessage = null;
     this.node.disconnect();
     this.node = null;
+    if (this.keepAliveGain) {
+      this.keepAliveGain.disconnect();
+      this.keepAliveGain = null;
+    }
     this.listeners.clear();
     this.eventListeners.clear();
   }

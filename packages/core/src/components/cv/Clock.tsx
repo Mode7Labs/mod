@@ -2,36 +2,9 @@ import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } fr
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
-import { clockPulseWorklet } from '../../worklets';
-
-const clockWorkletLoaders = new WeakMap<AudioContext, Promise<void>>();
-const clockWorkletUrls = new WeakMap<AudioContext, string>();
-
-const loadClockWorklet = (audioContext: AudioContext) => {
-  let loader = clockWorkletLoaders.get(audioContext);
-  if (!loader) {
-    const blob = new Blob([clockPulseWorklet], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    clockWorkletUrls.set(audioContext, url);
-    loader = audioContext.audioWorklet.addModule(url).then(() => {
-      const loadedUrl = clockWorkletUrls.get(audioContext);
-      if (loadedUrl) {
-        URL.revokeObjectURL(loadedUrl);
-        clockWorkletUrls.delete(audioContext);
-      }
-    }).catch((err) => {
-      const loadedUrl = clockWorkletUrls.get(audioContext);
-      if (loadedUrl) {
-        URL.revokeObjectURL(loadedUrl);
-        clockWorkletUrls.delete(audioContext);
-      }
-      clockWorkletLoaders.delete(audioContext);
-      throw err;
-    });
-    clockWorkletLoaders.set(audioContext, loader);
-  }
-  return loader;
-};
+import { acquireSharedTransport, releaseSharedTransport } from '../../transportRegistry';
+import { WorkletTransport } from '../../transportWorklet';
+import { TransportBus } from '../../transportBus';
 
 export interface ClockHandle {
   start: () => void;
@@ -55,6 +28,7 @@ export interface ClockRenderProps {
 export interface ClockProps {
   output: ModStreamRef;
   startOutput?: ModStreamRef;
+  stopOutput?: ModStreamRef;
   label?: string;
   // Controlled props
   bpm?: number;
@@ -68,6 +42,7 @@ export interface ClockProps {
 export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
   output,
   startOutput,
+  stopOutput,
   label = 'clock',
   bpm: controlledBpm,
   onBpmChange,
@@ -77,36 +52,26 @@ export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
   const audioContext = useAudioContext();
   const [bpm, setBpm] = useControlledState(controlledBpm, 120, onBpmChange);
   const [isRunning, setIsRunning] = useState(false);
+  const [isWorkletReady, setIsWorkletReady] = useState(false);
 
-  const constantSourceRef = useRef<ConstantSourceNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const startSourceRef = useRef<ConstantSourceNode | null>(null);
+  const clockGainRef = useRef<GainNode | null>(null);
   const startGainRef = useRef<GainNode | null>(null);
-  const bpmRef = useRef(bpm);
-  const isRunningRef = useRef(isRunning);
+  const stopGainRef = useRef<GainNode | null>(null);
+  const transportRef = useRef<WorkletTransport | null>(null);
+  const transportBusRef = useRef<TransportBus | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
-
-  useEffect(() => { bpmRef.current = bpm; }, [bpm]);
-  useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
 
   // Create clock output once
   useEffect(() => {
     if (!audioContext) return;
 
-    const constantSource = audioContext.createConstantSource();
-    constantSource.offset.value = 0;
-    constantSourceRef.current = constantSource;
-
-    const gainNode = audioContext.createGain();
-    gainNode.gain.value = 1.0;
-    gainNodeRef.current = gainNode;
-
-    constantSource.connect(gainNode);
-    constantSource.start(0);
+    const clockGain = audioContext.createGain();
+    clockGain.gain.value = 1.0;
+    clockGainRef.current = clockGain;
 
     output.current = {
-      audioNode: constantSource,
-      gain: gainNode,
+      audioNode: clockGain,
+      gain: clockGain,
       context: audioContext,
       metadata: {
         label,
@@ -115,19 +80,12 @@ export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
     };
 
     if (startOutput) {
-      const startSource = audioContext.createConstantSource();
-      startSource.offset.value = 0;
-      startSourceRef.current = startSource;
-
       const startGain = audioContext.createGain();
       startGain.gain.value = 1.0;
       startGainRef.current = startGain;
 
-      startSource.connect(startGain);
-      startSource.start(0);
-
       startOutput.current = {
-        audioNode: startSource,
+        audioNode: startGain,
         gain: startGain,
         context: audioContext,
         metadata: {
@@ -137,41 +95,61 @@ export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
       };
     }
 
-    if (!audioContext.audioWorklet || typeof AudioWorkletNode === 'undefined') {
-      console.error('AudioWorklet not supported in this environment.');
-    } else {
-      loadClockWorklet(audioContext).then(() => {
-        const node = new AudioWorkletNode(audioContext, 'clock-pulse', {
-          numberOfInputs: 0,
-          numberOfOutputs: 1,
-          outputChannelCount: [1],
-          parameterData: {
-            bpm: bpmRef.current,
-            running: isRunningRef.current ? 1 : 0,
-          },
-        });
-        node.connect(constantSource.offset);
-        workletNodeRef.current = node;
-      }).catch((err) => {
-        console.error('Failed to load clock worklet', err);
-      });
+    if (stopOutput) {
+      const stopGain = audioContext.createGain();
+      stopGain.gain.value = 1.0;
+      stopGainRef.current = stopGain;
+
+      stopOutput.current = {
+        audioNode: stopGain,
+        gain: stopGain,
+        context: audioContext,
+        metadata: {
+          label: `${label}-stop`,
+          sourceType: 'cv',
+        },
+      };
     }
 
+    let cancelled = false;
+    acquireSharedTransport(audioContext).then(({ transport, bus }) => {
+      if (cancelled) return;
+      transportRef.current = transport;
+      transportBusRef.current = bus;
+      const node = transport.getNode();
+      if (node) {
+        node.connect(clockGain, 0, 0);
+        if (startGainRef.current) {
+          node.connect(startGainRef.current, 1, 0);
+        }
+        if (stopGainRef.current) {
+          node.connect(stopGainRef.current, 2, 0);
+        }
+      }
+      output.current = {
+        audioNode: clockGain,
+        gain: clockGain,
+        context: audioContext,
+        transport: bus,
+        metadata: {
+          label,
+          sourceType: 'cv',
+        },
+      };
+      workletNodeRef.current = node;
+      setIsWorkletReady(true);
+    }).catch((err) => {
+      console.error('Failed to load transport worklet', err);
+    });
+
     return () => {
-      constantSource.stop();
-      constantSource.disconnect();
-      gainNode.disconnect();
+      cancelled = true;
+      clockGain.disconnect();
       output.current = null;
-      constantSourceRef.current = null;
-      gainNodeRef.current = null;
+      clockGainRef.current = null;
       if (workletNodeRef.current) {
         try { workletNodeRef.current.disconnect(); } catch (e) {}
         workletNodeRef.current = null;
-      }
-      if (startSourceRef.current) {
-        startSourceRef.current.stop();
-        startSourceRef.current.disconnect();
-        startSourceRef.current = null;
       }
       if (startGainRef.current) {
         startGainRef.current.disconnect();
@@ -180,32 +158,33 @@ export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
       if (startOutput) {
         startOutput.current = null;
       }
+      if (stopGainRef.current) {
+        stopGainRef.current.disconnect();
+        stopGainRef.current = null;
+      }
+      if (stopOutput) {
+        stopOutput.current = null;
+      }
+      if (audioContext) {
+        releaseSharedTransport(audioContext);
+      }
+      transportRef.current = null;
+      transportBusRef.current = null;
+      setIsWorkletReady(false);
     };
-  }, [audioContext, label, startOutput]);
+  }, [audioContext, label, startOutput, stopOutput]);
 
   const start = () => {
-    if (isRunning || !audioContext || !constantSourceRef.current) return;
+    if (isRunning || !audioContext || !transportRef.current) return;
     setIsRunning(true);
-    if (startSourceRef.current) {
-      startSourceRef.current.offset.setValueAtTime(1, audioContext.currentTime);
-    }
-    const runningParam = workletNodeRef.current?.parameters.get('running');
-    runningParam?.setValueAtTime(1, audioContext.currentTime);
+    transportRef.current.start(audioContext.currentTime);
   };
 
   const stop = () => {
     if (!isRunning) return;
     setIsRunning(false);
-    if (!audioContext) return;
-
-    if (constantSourceRef.current && audioContext) {
-      constantSourceRef.current.offset.setValueAtTime(0, audioContext.currentTime);
-    }
-    if (startSourceRef.current && audioContext) {
-      startSourceRef.current.offset.setValueAtTime(0, audioContext.currentTime);
-    }
-    const runningParam = workletNodeRef.current?.parameters.get('running');
-    runningParam?.setValueAtTime(0, audioContext.currentTime);
+    if (!audioContext || !transportRef.current) return;
+    transportRef.current.stop(audioContext.currentTime);
   };
 
   const reset = () => {
@@ -213,16 +192,10 @@ export const Clock = React.forwardRef<ClockHandle, ClockProps>(({
   };
 
   useEffect(() => {
-    if (!audioContext) return;
-    const bpmParam = workletNodeRef.current?.parameters.get('bpm');
-    bpmParam?.setValueAtTime(bpm, audioContext.currentTime);
+    if (!audioContext || !transportRef.current || !isWorkletReady) return;
+    transportRef.current.setTempo(bpm, audioContext.currentTime);
   }, [bpm, audioContext]);
 
-  useEffect(() => {
-    if (!audioContext) return;
-    const runningParam = workletNodeRef.current?.parameters.get('running');
-    runningParam?.setValueAtTime(isRunning ? 1 : 0, audioContext.currentTime);
-  }, [isRunning, audioContext]);
 
   useImperativeHandle(ref, () => ({
     start,

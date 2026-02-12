@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { useAudioContext } from './AudioContext';
-import { Transport, TransportOptions } from '../components/transport/Transport';
+import { Transport, TransportOptions } from '../transport';
 
 interface TransportContextValue {
   transport: Transport | null;

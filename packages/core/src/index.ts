@@ -11,16 +11,16 @@ export { useModStreamToMediaStream } from './hooks/useModStreamToMediaStream';
 export type { ModStream, ModStreamRef } from './types/ModStream';
 
 // Transport + Scheduling
-export { Transport } from './components/transport/Transport';
-export type { TransportLike, TransportOptions, TransportState, TransportEvent } from './components/transport/Transport';
-export { WorkletTransport } from './components/transport/TransportWorklet';
-export type { WorkletTransportOptions, TransportTick } from './components/transport/TransportWorklet';
-export { TransportBus } from './components/transport/TransportBus';
-export type { TransportBusEvent, TransportBusTick } from './components/transport/TransportBus';
-export { Scheduler } from './components/transport/Scheduler';
-export type { Schedulable, SchedulerOptions } from './components/transport/Scheduler';
-export { PhaseSequencer } from './components/transport/PhaseSequencer';
-export type { PhaseSequencerOptions, SequencerStepEvent } from './components/transport/PhaseSequencer';
+export { Transport } from './transport';
+export type { TransportLike, TransportOptions, TransportState, TransportEvent } from './transport';
+export { WorkletTransport } from './transportWorklet';
+export type { WorkletTransportOptions, TransportTick } from './transportWorklet';
+export { TransportBus } from './transportBus';
+export type { TransportBusEvent, TransportBusTick } from './transportBus';
+export { Scheduler } from './scheduler';
+export type { Schedulable, SchedulerOptions } from './scheduler';
+export { PhaseSequencer } from './sequencer';
+export type { PhaseSequencerOptions, SequencerStepEvent } from './sequencer';
 
 // Source Components
 export { Microphone } from './components/sources/Microphone';

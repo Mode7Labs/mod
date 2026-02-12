@@ -1,4 +1,4 @@
-import { TransportLike } from './Transport';
+import { TransportLike } from './transport';
 
 export interface Schedulable {
   schedule(transport: TransportLike, windowStartTime: number, windowEndTime: number): void;
