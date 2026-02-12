@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } fr
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
+import { clockDetectorWorklet } from '../../worklets';
 
 export interface Step {
   active: boolean;
@@ -55,44 +56,13 @@ export interface SequencerProps {
   children?: (props: SequencerRenderProps) => ReactNode;
 }
 
-const CLOCK_DETECTOR_WORKLET = `
-class ClockDetector extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this._last = 0;
-    this._cooldown = 0;
-  }
-  process(inputs) {
-    const input = inputs[0];
-    if (!input || input.length === 0) return true;
-    const channel = input[0];
-    if (!channel) return true;
-    for (let i = 0; i < channel.length; i++) {
-      const value = channel[i];
-      if (this._cooldown > 0) {
-        this._cooldown--;
-        this._last = value;
-        continue;
-      }
-      if (this._last <= 0.5 && value > 0.5) {
-        this.port.postMessage({ type: 'pulse' });
-        this._cooldown = 32;
-      }
-      this._last = value;
-    }
-    return true;
-  }
-}
-registerProcessor('clock-detector', ClockDetector);
-`;
-
 const clockDetectorLoaders = new WeakMap<AudioContext, Promise<void>>();
 const clockDetectorUrls = new WeakMap<AudioContext, string>();
 
 const loadClockDetectorWorklet = (audioContext: AudioContext) => {
   let loader = clockDetectorLoaders.get(audioContext);
   if (!loader) {
-    const blob = new Blob([CLOCK_DETECTOR_WORKLET], { type: 'application/javascript' });
+    const blob = new Blob([clockDetectorWorklet], { type: 'application/javascript' });
     const url = URL.createObjectURL(blob);
     clockDetectorUrls.set(audioContext, url);
     loader = audioContext.audioWorklet.addModule(url).then(() => {

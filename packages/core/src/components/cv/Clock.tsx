@@ -2,71 +2,7 @@ import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } fr
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
-
-// Inline worklet to generate clock pulses on the audio thread.
-const CLOCK_WORKLET = `
-class ClockPulseProcessor extends AudioWorkletProcessor {
-  static get parameterDescriptors() {
-    return [
-      { name: 'bpm', defaultValue: 120, minValue: 1, maxValue: 999 },
-      { name: 'running', defaultValue: 0, minValue: 0, maxValue: 1 },
-    ];
-  }
-
-  constructor() {
-    super();
-    this._phase = 0;
-    this._lastRunning = 0;
-  }
-
-  process(inputs, outputs, parameters) {
-    const output = outputs[0];
-    if (!output || output.length === 0) return true;
-    const channel = output[0];
-    if (!channel) return true;
-
-    const bpmParam = parameters.bpm;
-    const runningParam = parameters.running;
-    const pulseWidthSamples = Math.max(1, Math.round(sampleRate * 0.01)); // 10ms pulse
-
-    const bpmIsConstant = bpmParam.length === 1;
-    const runningIsConstant = runningParam.length === 1;
-    const bpmValue = bpmIsConstant ? bpmParam[0] : 120;
-    const runningValue = runningIsConstant ? runningParam[0] : 0;
-    const samplesPerPulse = bpmIsConstant
-      ? Math.max(1, Math.round(sampleRate * 60 / (Math.max(1e-6, bpmValue) * 16)))
-      : 0;
-
-    for (let i = 0; i < channel.length; i++) {
-      const bpm = bpmIsConstant ? bpmValue : bpmParam[i];
-      const running = runningIsConstant ? runningValue : runningParam[i];
-
-      if (running <= 0) {
-        channel[i] = 0;
-        this._phase = 0;
-        this._lastRunning = running;
-        continue;
-      }
-
-      if (this._lastRunning <= 0 && running > 0) {
-        this._phase = 0;
-      }
-
-      const period = bpmIsConstant
-        ? samplesPerPulse
-        : Math.max(1, Math.round(sampleRate * 60 / (Math.max(1e-6, bpm) * 16)));
-      const phase = this._phase % period;
-      channel[i] = phase < pulseWidthSamples ? 1 : 0;
-      this._phase += 1;
-      this._lastRunning = running;
-    }
-
-    return true;
-  }
-}
-
-registerProcessor('clock-pulse', ClockPulseProcessor);
-`;
+import { clockPulseWorklet } from '../../worklets';
 
 const clockWorkletLoaders = new WeakMap<AudioContext, Promise<void>>();
 const clockWorkletUrls = new WeakMap<AudioContext, string>();
@@ -74,7 +10,7 @@ const clockWorkletUrls = new WeakMap<AudioContext, string>();
 const loadClockWorklet = (audioContext: AudioContext) => {
   let loader = clockWorkletLoaders.get(audioContext);
   if (!loader) {
-    const blob = new Blob([CLOCK_WORKLET], { type: 'application/javascript' });
+    const blob = new Blob([clockPulseWorklet], { type: 'application/javascript' });
     const url = URL.createObjectURL(blob);
     clockWorkletUrls.set(audioContext, url);
     loader = audioContext.audioWorklet.addModule(url).then(() => {

@@ -2,62 +2,7 @@ import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } fr
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
-
-const SAMPLER_WORKLETS = `
-class GateDetector extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this._isHigh = false;
-  }
-  process(inputs) {
-    const input = inputs[0];
-    if (!input || input.length === 0) return true;
-    const channel = input[0];
-    if (!channel) return true;
-    let isHigh = this._isHigh;
-    for (let i = 0; i < channel.length; i++) {
-      const value = channel[i];
-      if (!isHigh && value > 0.5) {
-        this.port.postMessage({ type: 'gate-on' });
-        isHigh = true;
-      } else if (isHigh && value < 0.2) {
-        this.port.postMessage({ type: 'gate-off' });
-        isHigh = false;
-      }
-    }
-    this._isHigh = isHigh;
-    return true;
-  }
-}
-
-class CvFollower extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this._counter = 0;
-    this._sum = 0;
-  }
-  process(inputs) {
-    const input = inputs[0];
-    if (!input || input.length === 0) return true;
-    const channel = input[0];
-    if (!channel) return true;
-    for (let i = 0; i < channel.length; i++) {
-      this._sum += channel[i];
-      this._counter += 1;
-      if (this._counter >= 256) {
-        const avg = this._sum / this._counter;
-        this.port.postMessage({ type: 'cv', value: avg });
-        this._sum = 0;
-        this._counter = 0;
-      }
-    }
-    return true;
-  }
-}
-
-registerProcessor('sampler-gate-detector', GateDetector);
-registerProcessor('sampler-cv-follower', CvFollower);
-`;
+import { samplerWorklets } from '../../worklets';
 
 const samplerWorkletLoaders = new WeakMap<AudioContext, Promise<void>>();
 const samplerWorkletUrls = new WeakMap<AudioContext, string>();
@@ -65,7 +10,7 @@ const samplerWorkletUrls = new WeakMap<AudioContext, string>();
 const loadSamplerWorklets = (audioContext: AudioContext) => {
   let loader = samplerWorkletLoaders.get(audioContext);
   if (!loader) {
-    const blob = new Blob([SAMPLER_WORKLETS], { type: 'application/javascript' });
+    const blob = new Blob([samplerWorklets], { type: 'application/javascript' });
     const url = URL.createObjectURL(blob);
     samplerWorkletUrls.set(audioContext, url);
     loader = audioContext.audioWorklet.addModule(url).then(() => {
