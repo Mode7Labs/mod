@@ -4,7 +4,7 @@ import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
 import { getWorkletUrl } from '../../workletUrl';
 
-export interface step {
+export interface Step {
   active: boolean;
   value: number;
   lengthPct: number;
@@ -15,7 +15,7 @@ export interface step {
 export interface SequencerHandle {
   reset: () => void;
   getState: () => {
-    steps: step[];
+    steps: Step[];
     currentStep: number;
     division: number;
     length: number;
@@ -24,8 +24,8 @@ export interface SequencerHandle {
 }
 
 export interface SequencerRenderProps {
-  steps: step[];
-  setSteps: (steps: step[]) => void;
+  steps: Step[];
+  setSteps: (steps: Step[]) => void;
   currentStep: number;
   division: number;
   setDivision: (value: number) => void;
@@ -45,8 +45,8 @@ export interface SequencerProps {
   label?: string;
   numSteps?: number;
   // Controlled props
-  steps?: step[];
-  onStepsChange?: (steps: step[]) => void;
+  steps?: Step[];
+  onStepsChange?: (steps: Step[]) => void;
   division?: number;
   onDivisionChange?: (division: number) => void;
   length?: number;
@@ -94,7 +94,7 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
   children,
 }, ref) => {
   const audioContext = useAudioContext();
-  const initialSteps: step[] = [];
+  const initialSteps: Step[] = [];
   for (let i = 0; i < numSteps ; i++) {
     initialSteps.push({ active: false, value: 0, lengthPct: 80, slide: false, accent: false });
   }
@@ -117,7 +117,7 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
     return Math.max(10, Math.min(100, value as number));
   };
 
-  const normalizeStep = (input: step | undefined) => ({
+  const normalizeStep = (input: Step | undefined) => ({
     active: input?.active ?? false,
     value: input?.value ?? 0,
     lengthPct: clampLengthPct(input?.lengthPct),
@@ -125,7 +125,7 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
     accent: input?.accent ?? false,
   });
 
-  const normalizeSteps = (nextLength: number, current: step[]) => {
+  const normalizeSteps = (nextLength: number, current: Step[]) => {
     const clampedLength = Math.max(1, Math.min(32, nextLength));
     const nextSteps = current.slice(0, clampedLength).map((step) => normalizeStep(step));
     while (nextSteps.length < clampedLength) {
