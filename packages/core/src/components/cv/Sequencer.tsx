@@ -109,6 +109,7 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
   const outputGainRef = useRef<GainNode | null>(null);
   const gateGainRef = useRef<GainNode | null>(null);
   const accentGainRef = useRef<GainNode | null>(null);
+  const keepAliveGainRef = useRef<GainNode | null>(null);
 
   const clampLengthPct = (value: number | undefined) => {
     if (!Number.isFinite(value)) {
@@ -178,6 +179,12 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
       cvGain.gain.value = 1.0;
       outputGainRef.current = cvGain;
       node.connect(cvGain, 0, 0);
+
+      const keepAlive = audioContext.createGain();
+      keepAlive.gain.value = 0;
+      keepAliveGainRef.current = keepAlive;
+      cvGain.connect(keepAlive);
+      keepAlive.connect(audioContext.destination);
 
       const gateGain = audioContext.createGain();
       gateGain.gain.value = 1.0;
@@ -263,6 +270,10 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
         accentGainRef.current.disconnect();
         accentGainRef.current = null;
       }
+      if (keepAliveGainRef.current) {
+        keepAliveGainRef.current.disconnect();
+        keepAliveGainRef.current = null;
+      }
       output.current = null;
       if (gateOutput) {
         gateOutput.current = null;
@@ -299,27 +310,69 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
     });
   }, [swing]);
 
-  const clockKey = clock?.current?.audioNode ? String(clock.current.audioNode) : 'null';
+  const clockNode = workletRef.current;
   useEffect(() => {
-    if (!clock?.current || !workletRef.current || !isWorkletReady) return;
-    const inGain = clock.current.gain;
-    const node = workletRef.current;
-    inGain.connect(node, 0, 0);
-    return () => {
-      try { inGain.disconnect(node); } catch (e) {}
-    };
-  }, [clockKey, isWorkletReady]);
+    if (!clock || !isWorkletReady || !clockNode) return;
 
-  const resetKey = resetInput?.current?.audioNode ? String(resetInput.current.audioNode) : 'null';
-  useEffect(() => {
-    if (!resetInput?.current || !workletRef.current || !isWorkletReady) return;
-    const inGain = resetInput.current.gain;
-    const node = workletRef.current;
-    inGain.connect(node, 0, 1);
-    return () => {
-      try { inGain.disconnect(node); } catch (e) {}
+    let rafId: number | null = null;
+    let connectedGain: GainNode | null = null;
+    let cancelled = false;
+
+    const attemptConnect = () => {
+      if (cancelled || !clockNode) return;
+      const inGain = clock.current?.gain;
+      if (!inGain) {
+        rafId = requestAnimationFrame(attemptConnect);
+        return;
+      }
+      connectedGain = inGain;
+      inGain.connect(clockNode, 0, 0);
     };
-  }, [resetKey, isWorkletReady]);
+
+    attemptConnect();
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      if (connectedGain && clockNode) {
+        try { connectedGain.disconnect(clockNode); } catch (e) {}
+      }
+    };
+  }, [clock, isWorkletReady, clockNode]);
+
+  const resetNode = workletRef.current;
+  useEffect(() => {
+    if (!resetInput || !isWorkletReady || !resetNode) return;
+
+    let rafId: number | null = null;
+    let connectedGain: GainNode | null = null;
+    let cancelled = false;
+
+    const attemptConnect = () => {
+      if (cancelled || !resetNode) return;
+      const inGain = resetInput.current?.gain;
+      if (!inGain) {
+        rafId = requestAnimationFrame(attemptConnect);
+        return;
+      }
+      connectedGain = inGain;
+      inGain.connect(resetNode, 0, 1);
+    };
+
+    attemptConnect();
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      if (connectedGain && resetNode) {
+        try { connectedGain.disconnect(resetNode); } catch (e) {}
+      }
+    };
+  }, [resetInput, isWorkletReady, resetNode]);
 
   const resetSequence = () => {
     setCurrentStep(0);
