@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, ReactNode, useImperativeHandle } fr
 import { useAudioContext } from '../../context/AudioContext';
 import { ModStreamRef } from '../../types/ModStream';
 import { useControlledState } from '../../hooks/useControlledState';
-import { getWorkletUrl } from '../../workletUrl';
+import { sequencerWorklet } from '../../worklets';
 
 export interface Step {
   active: boolean;
@@ -60,12 +60,26 @@ export interface SequencerProps {
 }
 
 const sequencerWorkletLoaders = new WeakMap<AudioContext, Promise<void>>();
+const sequencerWorkletUrls = new WeakMap<AudioContext, string>();
 
 const loadSequencerWorklet = (audioContext: AudioContext) => {
   let loader = sequencerWorkletLoaders.get(audioContext);
   if (!loader) {
-    const url = getWorkletUrl('sequencer-worklet.js');
-    loader = audioContext.audioWorklet.addModule(url).catch((err) => {
+    const blob = new Blob([sequencerWorklet], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    sequencerWorkletUrls.set(audioContext, url);
+    loader = audioContext.audioWorklet.addModule(url).then(() => {
+      const loadedUrl = sequencerWorkletUrls.get(audioContext);
+      if (loadedUrl) {
+        URL.revokeObjectURL(loadedUrl);
+        sequencerWorkletUrls.delete(audioContext);
+      }
+    }).catch((err) => {
+      const loadedUrl = sequencerWorkletUrls.get(audioContext);
+      if (loadedUrl) {
+        URL.revokeObjectURL(loadedUrl);
+        sequencerWorkletUrls.delete(audioContext);
+      }
       sequencerWorkletLoaders.delete(audioContext);
       throw err;
     });

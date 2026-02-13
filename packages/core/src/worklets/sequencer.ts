@@ -1,3 +1,4 @@
+export const sequencerWorklet = `
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const clampLengthPct = (value) => {
   if (!Number.isFinite(value)) return 80;
@@ -337,3 +338,5 @@ class SequencerProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('sequencer-worklet', SequencerProcessor);
+
+`;

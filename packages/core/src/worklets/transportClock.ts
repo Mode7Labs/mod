@@ -1,3 +1,4 @@
+export const transportClockWorklet = `
 class TransportClockProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -156,3 +157,5 @@ class TransportClockProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('transport-clock', TransportClockProcessor);
+
+`;

@@ -1,5 +1,5 @@
 import { Transport, TransportEvent, TransportLike, TransportOptions } from './transport';
-import { getWorkletUrl } from './workletUrl';
+import { transportClockWorklet } from './worklets';
 
 type WorkletCommand =
   | { type: 'init'; bpm: number; startBeat: number; tickIntervalSec: number }
@@ -25,12 +25,26 @@ export interface WorkletTransportOptions extends TransportOptions {
 }
 
 const workletLoaders = new WeakMap<AudioContext, Promise<void>>();
+const workletUrls = new WeakMap<AudioContext, string>();
 
 const loadTransportWorklet = (audioContext: AudioContext) => {
   let loader = workletLoaders.get(audioContext);
   if (!loader) {
-    const url = getWorkletUrl('transport-clock.js');
-    loader = audioContext.audioWorklet.addModule(url).catch((err) => {
+    const blob = new Blob([transportClockWorklet], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    workletUrls.set(audioContext, url);
+    loader = audioContext.audioWorklet.addModule(url).then(() => {
+      const loadedUrl = workletUrls.get(audioContext);
+      if (loadedUrl) {
+        URL.revokeObjectURL(loadedUrl);
+        workletUrls.delete(audioContext);
+      }
+    }).catch((err) => {
+      const loadedUrl = workletUrls.get(audioContext);
+      if (loadedUrl) {
+        URL.revokeObjectURL(loadedUrl);
+        workletUrls.delete(audioContext);
+      }
       workletLoaders.delete(audioContext);
       throw err;
     });
