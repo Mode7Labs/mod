@@ -509,7 +509,7 @@ function ModularSynth() {
         {modules.map((module) => {
           const inputPorts = module.ports.filter(p => p.type === 'input' && !p.label.startsWith('CV') && p.label !== 'Gate');
           const outputPorts = module.ports.filter(p => p.type === 'output');
-          const cvPorts = module.ports.filter(p => p.type === 'input' && (p.label === 'CV' || p.label === 'Gate'));
+          const cvPorts = module.ports.filter(p => p.type === 'input' && p.id.includes('cv-'));
 
           // Get connected input streams for each input port (excluding CV)
           const inputStreams = inputPorts.map(port => {
