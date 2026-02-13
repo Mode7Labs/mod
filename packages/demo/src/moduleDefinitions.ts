@@ -327,8 +327,8 @@ export const MODULE_DEFINITIONS: Record<string, ModuleDefinition> = {
     category: 'source',
     color: '#00b4d8',
     inputs: 2,
-    inputLabels: ['Gate', 'Pitch'],
-    inputIds: ['cv-gate', 'cv-pitch'],
+    inputLabels: ['Pitch', 'Gate'],
+    inputIds: ['cv-pitch', 'cv-gate'],
     outputs: 1,
     defaultParams: {
       src: '',
