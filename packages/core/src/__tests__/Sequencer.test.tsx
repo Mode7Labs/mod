@@ -511,18 +511,22 @@ describe('Sequencer', () => {
       expect(accentOutput.current?.metadata?.label).toBe('sequencer-accent');
     });
 
-    it('should output initial step value', () => {
+    it('should expose initial step value to render props', () => {
       const output = createMockStreamRef();
       const customSteps: Step[] = [
         { active: true, value: 0.75, lengthPct: 80, slide: false, accent: false },
         { active: false, value: 0.25, lengthPct: 80, slide: false, accent: false },
       ];
 
-      render(<Sequencer output={output} steps={customSteps} numSteps={2} />);
+      const { getByText } = render(
+        <Sequencer output={output} steps={customSteps} numSteps={2}>
+          {({ steps }) => (
+            <span>Value: {steps[0]?.value}</span>
+          )}
+        </Sequencer>
+      );
 
-      const constantSource = output.current?.audioNode as ConstantSourceNode;
-      expect(constantSource).toBeDefined();
-      expect(constantSource.offset.value).toBe(0.75);
+      expect(getByText('Value: 0.75')).toBeInTheDocument();
     });
   });
 

@@ -177,39 +177,22 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
   useEffect(() => {
     if (!audioContext) return;
     let cancelled = false;
+    let workletNode: AudioWorkletNode | null = null;
+    let keepAlive: GainNode | null = null;
 
-    loadSequencerWorklet(audioContext).then(() => {
-      if (cancelled) return;
-      const node = new AudioWorkletNode(audioContext, 'sequencer-worklet', {
-        numberOfInputs: 2,
-        numberOfOutputs: 3,
-        outputChannelCount: [1, 1, 1],
-        channelCount: 1,
-        channelCountMode: 'explicit',
-      });
-      workletRef.current = node;
+    const cvGain = audioContext.createGain();
+    cvGain.gain.value = 1.0;
+    outputGainRef.current = cvGain;
 
-      const cvGain = audioContext.createGain();
-      cvGain.gain.value = 1.0;
-      outputGainRef.current = cvGain;
-      node.connect(cvGain, 0, 0);
+    const gateGain = audioContext.createGain();
+    gateGain.gain.value = 1.0;
+    gateGainRef.current = gateGain;
 
-      const keepAlive = audioContext.createGain();
-      keepAlive.gain.value = 0;
-      keepAliveGainRef.current = keepAlive;
-      cvGain.connect(keepAlive);
-      keepAlive.connect(audioContext.destination);
+    const accentGain = audioContext.createGain();
+    accentGain.gain.value = 1.0;
+    accentGainRef.current = accentGain;
 
-      const gateGain = audioContext.createGain();
-      gateGain.gain.value = 1.0;
-      gateGainRef.current = gateGain;
-      node.connect(gateGain, 1, 0);
-
-      const accentGain = audioContext.createGain();
-      accentGain.gain.value = 1.0;
-      accentGainRef.current = accentGain;
-      node.connect(accentGain, 2, 0);
-
+    const assignOutputs = () => {
       output.current = {
         audioNode: cvGain,
         gain: cvGain,
@@ -243,51 +226,93 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
           },
         };
       }
+    };
 
-      node.port.onmessage = (event) => {
-        if (event.data?.type === 'step') {
-          setCurrentStep(event.data.currentStep ?? 0);
+    assignOutputs();
+
+    const createWorklet = async () => {
+      if (!audioContext.audioWorklet || typeof AudioWorkletNode === 'undefined') {
+        return;
+      }
+      try {
+        await loadSequencerWorklet(audioContext);
+        if (cancelled) return;
+        if (workletNode) return;
+        const node = new AudioWorkletNode(audioContext, 'sequencer-worklet', {
+          numberOfInputs: 2,
+          numberOfOutputs: 3,
+          outputChannelCount: [1, 1, 1],
+          channelCount: 1,
+          channelCountMode: 'explicit',
+        });
+        workletNode = node;
+        workletRef.current = node;
+
+        node.connect(cvGain, 0, 0);
+        node.connect(gateGain, 1, 0);
+        node.connect(accentGain, 2, 0);
+
+        keepAlive = audioContext.createGain();
+        keepAlive.gain.value = 0;
+        keepAliveGainRef.current = keepAlive;
+        node.connect(keepAlive);
+        keepAlive.connect(audioContext.destination);
+
+        const port = node.port;
+        if (port) {
+          port.onmessage = (event) => {
+            if (event.data?.type === 'step') {
+              setCurrentStep(event.data.currentStep ?? 0);
+            }
+          };
+
+          port.postMessage({
+            type: 'state',
+            steps: normalizeSteps(length, steps),
+            length,
+            division,
+            swing,
+            slideTime: 0.065,
+            baseGateSeconds: 0.05,
+          });
         }
-      };
 
-      node.port.postMessage({
-        type: 'state',
-        steps: normalizeSteps(length, steps),
-        length,
-        division,
-        swing,
-        slideTime: 0.065,
-        baseGateSeconds: 0.05,
-      });
-      setIsWorkletReady(true);
-    }).catch((err) => {
-      if (cancelled) return;
-      console.error('Failed to load sequencer worklet', err);
-    });
+        setIsWorkletReady(true);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Failed to load sequencer worklet', err);
+      }
+    };
+
+    createWorklet();
 
     return () => {
       cancelled = true;
+      setIsWorkletReady(false);
       if (workletRef.current) {
-        workletRef.current.port.onmessage = null;
+        if (workletRef.current.port) {
+          workletRef.current.port.onmessage = null;
+        }
         try { workletRef.current.disconnect(); } catch (e) {}
         workletRef.current = null;
-      }
-      if (outputGainRef.current) {
-        outputGainRef.current.disconnect();
-        outputGainRef.current = null;
-      }
-      if (gateGainRef.current) {
-        gateGainRef.current.disconnect();
-        gateGainRef.current = null;
-      }
-      if (accentGainRef.current) {
-        accentGainRef.current.disconnect();
-        accentGainRef.current = null;
       }
       if (keepAliveGainRef.current) {
         keepAliveGainRef.current.disconnect();
         keepAliveGainRef.current = null;
       }
+      if (cvGain) {
+        try { cvGain.disconnect(); } catch (e) {}
+        outputGainRef.current = null;
+      }
+      if (gateGain) {
+        try { gateGain.disconnect(); } catch (e) {}
+        gateGainRef.current = null;
+      }
+      if (accentGain) {
+        try { accentGain.disconnect(); } catch (e) {}
+        accentGainRef.current = null;
+      }
+      keepAlive = null;
       output.current = null;
       if (gateOutput) {
         gateOutput.current = null;
@@ -295,13 +320,13 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
       if (accentOutput) {
         accentOutput.current = null;
       }
-      setIsWorkletReady(false);
     };
   }, [audioContext, label, gateOutput, accentOutput]);
 
   useEffect(() => {
-    if (!workletRef.current) return;
-    workletRef.current.port.postMessage({
+    const port = workletRef.current?.port;
+    if (!port) return;
+    port.postMessage({
       type: 'steps',
       steps: normalizeSteps(length, steps),
       length,
@@ -309,16 +334,18 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
   }, [steps, length]);
 
   useEffect(() => {
-    if (!workletRef.current) return;
-    workletRef.current.port.postMessage({
+    const port = workletRef.current?.port;
+    if (!port) return;
+    port.postMessage({
       type: 'division',
       value: division,
     });
   }, [division]);
 
   useEffect(() => {
-    if (!workletRef.current) return;
-    workletRef.current.port.postMessage({
+    const port = workletRef.current?.port;
+    if (!port) return;
+    port.postMessage({
       type: 'swing',
       value: swing,
     });
@@ -390,8 +417,9 @@ export const Sequencer = React.forwardRef<SequencerHandle, SequencerProps>(({
 
   const resetSequence = () => {
     setCurrentStep(0);
-    if (workletRef.current) {
-      workletRef.current.port.postMessage({ type: 'reset' });
+    const port = workletRef.current?.port;
+    if (port) {
+      port.postMessage({ type: 'reset' });
     }
   };
 

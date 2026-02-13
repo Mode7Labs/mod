@@ -11,6 +11,20 @@ const createMockAudioContext = (currentTime = 0) => ({
     addModule: jest.fn(() => Promise.resolve()),
   },
   destination: {},
+  createGain: () => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    gain: {
+      value: 0,
+      setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+      exponentialRampToValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+      setValueCurveAtTime: jest.fn(),
+      cancelScheduledValues: jest.fn(),
+      cancelAndHoldAtTime: jest.fn(),
+    },
+  }) as unknown as GainNode,
 } as unknown as AudioContext);
 
 // Mock MessagePort for AudioWorkletNode

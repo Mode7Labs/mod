@@ -277,6 +277,11 @@ class MockMediaDevices {
 // Mock AudioWorkletNode for Clock worklet testing
 class MockAudioWorkletNode {
   parameters: Map<string, AudioParam>;
+  port: {
+    onmessage: ((event: { data: unknown }) => void) | null;
+    postMessage: jest.Mock;
+  };
+
   constructor(_context: AudioContext, _name: string, _options?: AudioWorkletNodeOptions) {
     this.parameters = new Map<string, AudioParam>([
       ['bpm', {
@@ -300,6 +305,10 @@ class MockAudioWorkletNode {
         cancelAndHoldAtTime: jest.fn(),
       } as unknown as AudioParam],
     ]);
+    this.port = {
+      onmessage: null,
+      postMessage: jest.fn(),
+    };
   }
 
   connect = jest.fn();
