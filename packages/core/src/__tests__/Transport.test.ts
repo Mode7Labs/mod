@@ -1,8 +1,8 @@
-import { Transport } from '../components/transport/Transport';
-import { Scheduler, Schedulable } from '../components/transport/Scheduler';
-import { PhaseSequencer, SequencerStepEvent } from '../components/transport/PhaseSequencer';
-import { WorkletTransport } from '../components/transport/TransportWorklet';
-import { TransportBus } from '../components/transport/TransportBus';
+import { Transport } from '../transport';
+import { Scheduler, Schedulable } from '../scheduler';
+import { PhaseSequencer, SequencerStepEvent } from '../sequencer';
+import { WorkletTransport } from '../transportWorklet';
+import { TransportBus } from '../transportBus';
 
 // Mock AudioContext
 const createMockAudioContext = (currentTime = 0) => ({
@@ -11,6 +11,20 @@ const createMockAudioContext = (currentTime = 0) => ({
     addModule: jest.fn(() => Promise.resolve()),
   },
   destination: {},
+  createGain: () => ({
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    gain: {
+      value: 0,
+      setValueAtTime: jest.fn(),
+      linearRampToValueAtTime: jest.fn(),
+      exponentialRampToValueAtTime: jest.fn(),
+      setTargetAtTime: jest.fn(),
+      setValueCurveAtTime: jest.fn(),
+      cancelScheduledValues: jest.fn(),
+      cancelAndHoldAtTime: jest.fn(),
+    },
+  }) as unknown as GainNode,
 } as unknown as AudioContext);
 
 // Mock MessagePort for AudioWorkletNode

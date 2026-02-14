@@ -1460,10 +1460,12 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
 
     case 'Clock':
       const startOutput = outputStreams[1] || null;
+      const stopOutput = outputStreams[2] || null;
       return output ? (
         <Clock
           output={output}
           startOutput={startOutput}
+          stopOutput={stopOutput}
           bpm={params.bpm}
           onBpmChange={(value) => setParam('bpm', value)}
         >

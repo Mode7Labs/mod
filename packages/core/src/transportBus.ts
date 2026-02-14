@@ -1,5 +1,5 @@
-import { Transport, TransportEvent, TransportLike } from './Transport';
-import { WorkletTransport, TransportTick } from './TransportWorklet';
+import { Transport, TransportEvent, TransportLike } from './transport';
+import { WorkletTransport, TransportTick } from './transportWorklet';
 
 export type TransportBusEvent = TransportEvent | 'tick';
 

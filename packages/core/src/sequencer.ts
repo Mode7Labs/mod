@@ -1,5 +1,5 @@
-import { TransportLike } from './Transport';
-import { Schedulable } from './Scheduler';
+import { TransportLike } from './transport';
+import { Schedulable } from './scheduler';
 
 export interface SequencerStepEvent {
   time: number;
