@@ -36,3 +36,6 @@ LAUNCH_CHECKLIST.md
 
 # Test apps
 test-apps/
+
+# Generated js-synthesizer assets (copied from node_modules via postinstall)
+packages/demo/public/js-synthesizer/

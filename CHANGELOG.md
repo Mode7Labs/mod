@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13] - 2026-02-15
+
+### Added
+- **MidiPlayer** component - MIDI file playback with transport sync support (Clock/Start/Stop CV inputs)
+- **Fluidsynth** component - Software synthesizer using FluidSynth WASM for SoundFont-based synthesis
+- **MIDI bus system** - Event-based MIDI routing between MidiPlayer and synthesizers
+- **@tonejs/midi** dependency - MIDI file parsing library
+- **js-synthesizer** dependency - FluidSynth WASM wrapper
+- MidiPlayer worklets for clock detection and event scheduling
+- Postinstall script to copy js-synthesizer assets from node_modules
+- MidiPlayer and Fluidsynth documentation with usage examples
+- MidiPlayer and Fluidsynth unit tests
+
+### Changed
+- Generated js-synthesizer library files now ignored in git (copied via postinstall)
+
+### Contributors
+- Zack Hagan (@zhagan) - MIDI playback system and FluidSynth integration
+
 ## [0.1.12] - 2026-02-15
 
 ### Added
@@ -126,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modular signal routing system
 - Basic documentation
 
-[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.12...HEAD
+[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.13...HEAD
+[0.1.13]: https://github.com/Mode7Labs/mod/compare/v0.1.12...v0.1.13
 [0.1.12]: https://github.com/Mode7Labs/mod/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/Mode7Labs/mod/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/Mode7Labs/mod/compare/v0.1.8...v0.1.10
