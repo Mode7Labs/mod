@@ -159,6 +159,14 @@ function AcidBass() {
 }
 ```
 
+## Implementation Notes
+
+### Demo Input Configuration (v0.1.12+)
+
+The demo/playground shows three inputs: Clock, Reset, and Stop. However, the Stop input is not yet implemented in the component and has no effect. Only Clock and Reset are functional.
+
+This is planned for a future update to allow stopping the sequencer independently from the clock.
+
 ## Behavior Notes
 
 ### Clock Division

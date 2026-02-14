@@ -8,6 +8,7 @@ The `Clock` component generates precise timing pulses (gate signals) that can tr
 |------|------|---------|-------------|
 | `output` | `ModStreamRef` | Required | Reference to output the clock pulses |
 | `startOutput` | `ModStreamRef` | - | Optional reference for a start trigger signal (outputs 1 while running, 0 when stopped) |
+| `stopOutput` | `ModStreamRef` | - | Optional reference for a stop trigger signal (outputs 1 on stop event, 0 otherwise) |
 | `label` | `string` | `'clock'` | Label for the component in metadata |
 | `bpm` | `number` | `120` | Tempo in beats per minute (controlled or initial value) |
 | `onBpmChange` | `(bpm: number) => void` | - | Callback when BPM changes |
@@ -331,10 +332,17 @@ The Clock uses an AudioWorklet processor for sample-accurate timing. This provid
 
 ### Start Output
 
-The optional `startOutput` prop provides a continuous signal:
-- Outputs 1 when the clock is running
-- Outputs 0 when the clock is stopped
-- Useful for gating other components based on transport state
+The optional `startOutput` prop provides a trigger pulse when the clock starts:
+- Outputs a short pulse (10ms at 1.0) when the clock starts
+- Outputs 0 otherwise
+- Useful for triggering envelopes or resetting components at transport start
+
+### Stop Output
+
+The optional `stopOutput` prop provides a trigger pulse when the clock stops:
+- Outputs a short pulse (10ms at 1.0) when the clock stops
+- Outputs 0 otherwise
+- Useful for triggering events or resetting components when transport stops
 
 ### Sync Considerations
 
@@ -342,6 +350,20 @@ The optional `startOutput` prop provides a continuous signal:
 - Changing BPM while running adjusts timing smoothly
 - `reset()` stops the clock and can be used to resync
 - Phase resets to 0 when clock starts or restarts
+
+### Shared Transport Architecture
+
+**Important:** All Clock components within the same AudioContext share a single underlying transport worklet. This design ensures:
+
+- **Perfect synchronization** - Multiple clocks always stay in phase
+- **Shared BPM** - All clocks share the same tempo
+- **Efficient resource usage** - Single worklet handles all clock timing
+
+**Implications:**
+- If you create multiple Clock components, changing the BPM on any one clock will affect all clocks in the same AudioContext
+- All clocks share the same start/stop state
+- This is by design to enable tight synchronization in modular patches
+- Each Clock component still has its own independent outputs and can be routed differently
 
 ## Related
 

@@ -390,6 +390,24 @@ function GatedSampler() {
 }
 ```
 
+## Migration Notes
+
+### Input Order Change (v0.1.12+)
+
+**Breaking Change:** The input order for the Sampler component in the demo/playground has been updated:
+
+**Old order (before v0.1.12):**
+1. Gate
+2. Pitch CV
+
+**New order (v0.1.12+):**
+1. Pitch CV
+2. Gate
+
+**Impact:** If you have saved patches that use the Sampler component with connections to both inputs, the connections will be reversed after updating. You will need to reconnect them in the correct order.
+
+**Component Props:** The component props (`gate` and `pitchCv`) are unchanged - this only affects the visual input port order in modular patch editors.
+
 ## Behavior Notes
 
 ### Pitch CV
