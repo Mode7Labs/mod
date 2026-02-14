@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12] - 2026-02-15
+
+### Added
+- **Clock stopOutput** - Optional third output providing a trigger pulse when transport stops
+- **Shared transport architecture** - All Clock components now share a single transport worklet per AudioContext for perfect synchronization
+- **Worklet source organization** - Worklets extracted to dedicated files in `src/worklets/` for better maintainability
+
+### Changed
+- **BREAKING: Sampler input order** - Demo/playground input order changed from [Gate, Pitch] to [Pitch, Gate]
+- Clock and Sequencer now use centralized worklet sources from `src/worklets/` directory
+- Transport system files moved from `components/transport/` to root level for cleaner imports
+- Improved clock and sequencer timing synchronization via shared transport
+- Enhanced test suite with refactored core tests
+
+### Fixed
+- Clock stop output now properly exposed
+- Sequencer CV input recognition improved
+- Transport included on ModStream for downstream timing sync
+- Step interface now properly exported from core
+
+### Contributors
+- Zack Hagan (@zhagan) - Shared transport system, worklet refactoring, clock/sequencer improvements
+
 ## [0.1.11] - 2026-02-03
 
 ### Added
@@ -103,7 +126,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modular signal routing system
 - Basic documentation
 
-[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.11...HEAD
+[Unreleased]: https://github.com/Mode7Labs/mod/compare/v0.1.12...HEAD
+[0.1.12]: https://github.com/Mode7Labs/mod/compare/v0.1.11...v0.1.12
 [0.1.11]: https://github.com/Mode7Labs/mod/compare/v0.1.10...v0.1.11
 [0.1.10]: https://github.com/Mode7Labs/mod/compare/v0.1.8...v0.1.10
 [0.1.8]: https://github.com/Mode7Labs/mod/compare/v0.1.7...v0.1.8
