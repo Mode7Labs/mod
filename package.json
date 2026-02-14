@@ -13,7 +13,8 @@
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "publish": "npm run build --workspace=packages/core && npm publish --workspace=packages/core"
+    "publish": "npm run build --workspace=packages/core && npm publish --workspace=packages/core",
+    "postinstall": "node scripts/copy-js-synthesizer-assets.mjs"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

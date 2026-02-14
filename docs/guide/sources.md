@@ -76,6 +76,28 @@ Streams audio from URLs.
 </StreamingAudioDeck>
 ```
 
+### Fluidsynth
+Loads FluidSynth via `js-synthesizer` so you can synthesize MIDI data with real SoundFonts.
+
+**Use for**: Live MIDI playback and SoundFont experimentation  
+**API**: [Fluidsynth](/api/sources/fluidsynth)
+
+```tsx
+<Fluidsynth output={audioOut} midiInput={midiBus} wasmBaseUrl="/mod/playground/js-synthesizer/" />
+```
+
+### MidiPlayer
+Schedules MIDI files against Clock/Start/Stop inputs and pushes MIDI events into downstream modules like `Fluidsynth`.
+
+**Use for**: Backing tracks, lessons, or transport-synced MIDI playback  
+**API**: [MidiPlayer](/api/sources/midi-player)
+
+```tsx
+<MidiPlayer output={midiBus} midiUrl="/samples/song.mid" bpm={128}>
+  {({ play }) => <button onClick={play}>Play MIDI</button>}
+</MidiPlayer>
+```
+
 ## Common Patterns
 
 ### Multiple Oscillators
