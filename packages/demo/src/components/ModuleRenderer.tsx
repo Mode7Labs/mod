@@ -105,7 +105,7 @@ export const ModuleRenderer: React.FC<ModuleRendererProps> = ({
   const clockInput = cvInputStreams['cv-clock'] || undefined;
   const resetInput = cvInputStreams['cv-reset'] || undefined;
   const gateInput = cvInputStreams['cv-gate'] || undefined;
-  const triggerInput = cvInputStreams['cv-trigger'] || undefined;
+  // const triggerInput = cvInputStreams['cv-trigger'] || undefined;
   const pitchCvInput = cvInputStreams['cv-pitch'] || undefined;
 
   React.useEffect(() => {
