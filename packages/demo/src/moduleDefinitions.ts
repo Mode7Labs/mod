@@ -75,9 +75,9 @@ export const MODULE_DEFINITIONS: Record<string, ModuleDefinition> = {
     label: 'Sequencer',
     category: 'cv',
     color: '#ffecd2',
-    inputs: 2,
-    inputLabels: ['Clock', 'Reset'],
-    inputIds: ['cv-clock', 'cv-reset'],
+    inputs: 3,
+    inputLabels: ['Clock', 'Reset', 'Stop'],
+    inputIds: ['cv-clock', 'cv-reset', 'cv-stop'],
     outputs: 3, // CV output + Gate output + Accent output
     outputLabels: ['Pitch', 'Gate', 'Accent'],
     defaultParams: {
@@ -93,8 +93,8 @@ export const MODULE_DEFINITIONS: Record<string, ModuleDefinition> = {
     category: 'cv',
     color: '#fddb92',
     inputs: 0,
-    outputs: 2,
-    outputLabels: ['Clock', 'Start'],
+    outputs: 3,
+    outputLabels: ['Clock', 'Start', 'Stop'],
     defaultParams: { bpm: 120 },
   },
   Delay: {
@@ -327,8 +327,8 @@ export const MODULE_DEFINITIONS: Record<string, ModuleDefinition> = {
     category: 'source',
     color: '#00b4d8',
     inputs: 2,
-    inputLabels: ['Gate', 'Pitch'],
-    inputIds: ['cv-gate', 'cv-pitch'],
+    inputLabels: ['Pitch', 'Gate'],
+    inputIds: ['cv-pitch', 'cv-gate'],
     outputs: 1,
     defaultParams: {
       src: '',
