@@ -8,6 +8,8 @@ import {
   NoiseGenerator,
   Microphone,
   MP3Deck,
+  Fluidsynth,
+  MidiPlayer,
   StreamingAudioDeck,
   // CV
   LFO,
@@ -380,6 +382,8 @@ function ModularSynth() {
           {renderModuleButton('NoiseGenerator')}
           {renderModuleButton('Microphone')}
           {renderModuleButton('MP3Deck')}
+          {renderModuleButton('Fluidsynth')}
+          {renderModuleButton('MidiPlayer')}
           {renderModuleButton('Sampler')}
           {renderModuleButton('StreamingAudioDeck')}
         </div>

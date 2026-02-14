@@ -29,6 +29,11 @@ export type { MicrophoneProps, MicrophoneRenderProps } from './components/source
 export { MP3Deck } from './components/sources/MP3Deck';
 export type { MP3DeckProps, MP3DeckRenderProps, MP3DeckHandle } from './components/sources/MP3Deck';
 
+export { Fluidsynth } from './components/sources/Fluidsynth';
+export type { FluidsynthProps, FluidsynthRenderProps, FluidsynthHandle } from './components/sources/Fluidsynth';
+export { MidiPlayer } from './components/sources/MidiPlayer';
+export type { MidiPlayerProps, MidiPlayerRenderProps, MidiPlayerHandle } from './components/sources/MidiPlayer';
+
 export { StreamingAudioDeck } from './components/sources/StreamingAudioDeck';
 export type { StreamingAudioDeckProps, StreamingAudioDeckRenderProps, StreamingAudioDeckHandle } from './components/sources/StreamingAudioDeck';
 
